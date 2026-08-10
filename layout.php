@@ -1,14 +1,6 @@
 <?php
-
 $current_page = basename($_SERVER['PHP_SELF']);
-
 ?>
-
-
-
-
-
-
 
 <!DOCTYPE html>
 <html lang="en">
@@ -137,6 +129,28 @@ $current_page = basename($_SERVER['PHP_SELF']);
         .dropdown-item i {
             font-size: 14px;
         }
+
+
+
+
+        .form-control {
+            color: #ffffff !important;
+        }
+
+        select.form-control {
+            color: #ffffff !important;
+        }
+
+        select.form-control option {
+            background-color: #ffffff !important;
+            color: #000000 !important;
+        }
+
+        input[type="date"]::-webkit-calendar-picker-indicator {
+            filter: invert(1);
+            cursor: pointer;
+        }
+        
     </style>
 
 </head>
