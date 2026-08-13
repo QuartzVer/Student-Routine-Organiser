@@ -1,4 +1,8 @@
 <?php
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
 $current_page = basename($_SERVER['PHP_SELF']);
 ?>
 
@@ -150,7 +154,6 @@ $current_page = basename($_SERVER['PHP_SELF']);
             filter: invert(1);
             cursor: pointer;
         }
-        
     </style>
 
 </head>
@@ -198,6 +201,16 @@ $current_page = basename($_SERVER['PHP_SELF']);
                                 <div class="card-body p-2">
 
                                     <ul class="nav justify-content-center nav-tabs-custom">
+                                        <?php if (isset($_SESSION['role']) && $_SESSION['role'] == 'admin') { ?>
+                                            <li class="nav-item">
+                                                <a class="nav-link <?php echo ($current_page == 'admin_dashboard.php') ? 'active-tab' : ''; ?>"
+                                                    href="admin_dashboard.php">
+                                                    <i class="mdi mdi-shield-account text-danger"></i>
+                                                    Admin Dashboard
+                                                </a>
+                                            </li>
+                                        <?php } ?>
+
                                         <li class="nav-item">
                                             <a class="nav-link <?php echo ($current_page == 'user_dashboard.php') ? 'active-tab' : ''; ?>"
                                                 href="user_dashboard.php"> <i
@@ -205,8 +218,8 @@ $current_page = basename($_SERVER['PHP_SELF']);
                                                 Dashboard
                                             </a>
                                         </li>
-
-                                        <li class="nav-item">
+                                        
+                                                    <li class="nav-item">
                                             <a class="nav-link <?php echo ($current_page == 'exercise.php') ? 'active-tab' : ''; ?>"
                                                 href="exercise.php"> <i
                                                     class="mdi mdi-run-fast text-warning"></i>
