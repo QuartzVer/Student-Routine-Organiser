@@ -105,6 +105,50 @@ if (isset($_POST['username'])) {
     <!-- endinject -->
     <!-- Layout styles -->
     <link rel="stylesheet" href="assets/css/style.css">
+    <style>
+    html,
+    body {
+        width: 100%;
+        min-height: 100%;
+        margin: 0;
+        padding: 0;
+        overflow-x: hidden;
+        background: #000000;
+    }
+
+    .container-scroller {
+        width: 100%;
+        min-height: 100vh;
+        margin: 0;
+        padding: 0;
+    }
+
+    .page-body-wrapper.full-page-wrapper {
+        width: 100%;
+        min-height: 100vh;
+        margin: 0;
+        padding: 0;
+    }
+
+    .row.w-100 {
+        width: 100% !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+    }
+
+    .content-wrapper.full-page-wrapper {
+        width: 100% !important;
+        min-height: 100vh !important;
+        margin: 0 !important;
+        padding: 0;
+    }
+
+    .auth.login-bg {
+        min-height: 100vh !important;
+        background-size: cover;
+        background-position: center;
+    }
+</style>
     <!-- End layout styles -->
     <link rel="shortcut icon" href="assets/images/favicon.png" />
 </head>
