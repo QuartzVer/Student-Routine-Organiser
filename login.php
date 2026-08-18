@@ -56,6 +56,20 @@ if (isset($_POST['username'])) {
         $_SESSION['role'] = $userData['role'];
         $_SESSION['last_activity'] = time();
 
+        // Record the user's latest successful login time.
+        $login_id = (int)$userData['id'];
+
+        $login_stmt = mysqli_prepare(
+            $con,
+            "UPDATE users SET last_login = NOW() WHERE id = ?"
+        );
+
+        if ($login_stmt) {
+            mysqli_stmt_bind_param($login_stmt, "i", $login_id);
+            mysqli_stmt_execute($login_stmt);
+            mysqli_stmt_close($login_stmt);
+        }
+
         if (isset($_POST['remember_me'])) {
 
             setcookie(
@@ -149,6 +163,7 @@ if (isset($_POST['username'])) {
         background-position: center;
     }
 </style>
+
     <!-- End layout styles -->
     <link rel="shortcut icon" href="assets/images/favicon.png" />
 </head>

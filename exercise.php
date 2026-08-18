@@ -205,11 +205,38 @@ mysqli_query($con, "
     AND activity_status = 'Scheduled'
 ");
 
-//get record based on current user
+
+//get record based on current user with sorting
+$allowed_sort = [
+    'exercise_date',
+    'activity_type',
+    'duration',
+    'calories_burned',
+    'intensity_level',
+    'activity_status'
+];
+
+$allowed_order = ['ASC', 'DESC'];
+
+$sort = $_GET['sort'] ?? 'exercise_date';
+$order = strtoupper($_GET['order'] ?? 'DESC');
+
+// Prevent invalid column/order from being used
+if (!in_array($sort, $allowed_sort, true)) {
+    $sort = 'exercise_date';
+}
+
+if (!in_array($order, $allowed_order, true)) {
+    $order = 'DESC';
+}
+
+// Clicking the same column switches ASC/DESC
+$next_order = ($order === 'ASC') ? 'DESC' : 'ASC';
+
 $query = "SELECT *
           FROM exercise
           WHERE user_id = '$user_id'
-          ORDER BY exercise_date DESC, exercise_id DESC";
+          ORDER BY $sort $order, exercise_id DESC";
 
 $result = mysqli_query($con, $query);
 
@@ -574,36 +601,62 @@ if ($goal_result && mysqli_num_rows($goal_result) > 0) {
                     <table class="table table-dark table-hover">
 
                         <thead>
-                            <tr>
-                                <th>
-                                    Exercise Date
-                                </th>
+    <tr>
 
-                                <th>
-                                    Activity
-                                </th>
+        <th>
+            Exercise Date
+            <a href="?sort=exercise_date&order=<?php echo $next_order; ?>"
+               style="text-decoration: none;">
+                <i class="mdi mdi-sort" style="color: white;"></i>
+            </a>
+        </th>
 
-                                <th>
-                                    Duration
-                                </th>
+        <th>
+            Activity
+            <a href="?sort=activity_type&order=<?php echo $next_order; ?>"
+               style="text-decoration: none;">
+                <i class="mdi mdi-sort" style="color: white;"></i>
+            </a>
+        </th>
 
-                                <th>
-                                    Calories
-                                </th>
+        <th>
+            Duration
+            <a href="?sort=duration&order=<?php echo $next_order; ?>"
+               style="text-decoration: none;">
+                <i class="mdi mdi-sort" style="color: white;"></i>
+            </a>
+        </th>
 
-                                <th>
-                                    Intensity
-                                </th>
+        <th>
+            Calories
+            <a href="?sort=calories_burned&order=<?php echo $next_order; ?>"
+               style="text-decoration: none;">
+                <i class="mdi mdi-sort" style="color: white;"></i>
+            </a>
+        </th>
 
-                                <th>
-                                    Status
-                                </th>
+        <th>
+            Intensity
+            <a href="?sort=intensity_level&order=<?php echo $next_order; ?>"
+               style="text-decoration: none;">
+                <i class="mdi mdi-sort" style="color: white;"></i>
+            </a>
+        </th>
 
-                                <th>
-                                    Action
-                                </th>
-                            </tr>
-                        </thead>
+        <th>
+            Status
+            <a href="?sort=activity_status&order=<?php echo $next_order; ?>"
+               style="text-decoration: none;">
+                <i class="mdi mdi-sort" style="color: white;"></i>
+            </a>
+        </th>
+
+        <th>
+            Action
+        </th>
+
+    </tr>
+</thead>
 
                         <tbody>
                             <?php

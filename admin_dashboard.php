@@ -1,4 +1,3 @@
-
 <?php
 require('auth.php');
 require('database.php');
@@ -129,9 +128,10 @@ $usersResult = mysqli_query(
 
 $recentResult = mysqli_query(
     $con,
-    "SELECT id, role, username, full_name, email, reg_date
+    "SELECT id, role, username, full_name, email, last_login
      FROM users
-     ORDER BY reg_date DESC, id DESC
+     WHERE last_login IS NOT NULL
+     ORDER BY last_login DESC, id DESC
      LIMIT 5"
 );
 
@@ -552,8 +552,8 @@ ob_start();
 
             <h4 class="text-white mb-3">
 
-                <i class="mdi mdi-account-clock text-warning"></i>
-                Recent Registrations
+                <i class="mdi mdi-login text-success"></i>
+                Recent Logins
 
             </h4>
 
@@ -568,7 +568,7 @@ ob_start();
                             <th>Full Name</th>
                             <th>Email</th>
                             <th>Role</th>
-                            <th>Registration Date</th>
+                            <th>Last Login</th>
                         </tr>
 
                     </thead>
@@ -607,7 +607,7 @@ ob_start();
 
                                         echo date(
                                             'd M Y, h:i A',
-                                            strtotime($user['reg_date'])
+                                            strtotime($user['last_login'])
                                         );
 
                                         ?>
@@ -626,7 +626,7 @@ ob_start();
                                     colspan="5"
                                     class="text-center text-muted"
                                 >
-                                    No registrations found.
+                                    No recent logins found.
                                 </td>
 
                             </tr>
@@ -652,4 +652,3 @@ $pageContent = ob_get_clean();
 include "layout.php";
 
 ?>
-

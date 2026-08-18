@@ -2,382 +2,1065 @@
 require('auth.php');
 require('database.php');
 
-$current_page = "diary.php";
-ob_start();
-
-$message = "";
-
-// Success messages.
-if (isset($_GET['success'])) {
-    if ($_GET['success'] === 'added') {
-        $message = "<div class='alert alert-success'>Journal entry added successfully.</div>";
-    } elseif ($_GET['success'] === 'updated') {
-        $message = "<div class='alert alert-success'>Journal entry updated successfully.</div>";
-    } elseif ($_GET['success'] === 'deleted') {
-        $message = "<div class='alert alert-success'>Journal entry deleted successfully.</div>";
-    }
+if (!isset($_SESSION['user_id'])) {
+    header("Location: login.php");
+    exit();
 }
+
+$current_page = "diary.php";
 
 $user_id = (int)$_SESSION['user_id'];
 
-// Delete journal entry. The user_id condition prevents deleting another user's record.
-if (isset($_GET['delete'])) {
-    $diary_id = (int)$_GET['delete'];
+$message = "";
+$message_type = "";
 
-    $stmt = mysqli_prepare(
-        $con,
-        "DELETE FROM diary WHERE diary_id = ? AND user_id = ?"
-    );
+$edit_id = 0;
+$edit_title = "";
+$edit_content = "";
+$edit_mood = "Neutral";
+$edit_date = date("Y-m-d");
 
-    if ($stmt) {
-        mysqli_stmt_bind_param($stmt, "ii", $diary_id, $user_id);
-        $success = mysqli_stmt_execute($stmt);
-        mysqli_stmt_close($stmt);
-
-        if ($success) {
-            header("Location: diary.php?success=deleted");
-            exit();
-        }
-    }
-
-    $message = "<div class='alert alert-danger'>Failed to delete journal entry.</div>";
-}
-
-// Add journal entry.
 if (isset($_POST['add_diary'])) {
-    $title = trim($_POST['title'] ?? '');
-    $content = trim($_POST['content'] ?? '');
-    $mood_status = trim($_POST['mood_status'] ?? '');
-    $diary_date = trim($_POST['diary_date'] ?? '');
 
-    $allowedMoods = ['Happy', 'Good', 'Neutral', 'Sad', 'Stressed', 'Angry'];
+    $title = trim($_POST['title'] ?? "");
+    $content = trim($_POST['content'] ?? "");
+    $mood = trim($_POST['mood_status'] ?? "Neutral");
+    $diary_date = $_POST['diary_date'] ?? date("Y-m-d");
 
-    if ($title === '' || $content === '' || $diary_date === '') {
-        $message = "<div class='alert alert-danger'>Please complete all required fields.</div>";
-    } elseif (!in_array($mood_status, $allowedMoods, true)) {
-        $message = "<div class='alert alert-danger'>Please select a valid mood.</div>";
+    if ($title === "") {
+
+        $message = "Please enter a title.";
+        $message_type = "danger";
+
+    } elseif ($content === "") {
+
+        $message = "Please enter your journal content.";
+        $message_type = "danger";
+
+    } elseif ($diary_date === "") {
+
+        $message = "Please select a date.";
+        $message_type = "danger";
+
     } else {
+
         $stmt = mysqli_prepare(
             $con,
-            "INSERT INTO diary (user_id, title, content, mood_status, diary_date)
-             VALUES (?, ?, ?, ?, ?)"
+            "INSERT INTO diary
+            (user_id, title, content, mood_status, diary_date)
+            VALUES (?, ?, ?, ?, ?)"
         );
 
         if ($stmt) {
+
             mysqli_stmt_bind_param(
                 $stmt,
                 "issss",
                 $user_id,
                 $title,
                 $content,
-                $mood_status,
+                $mood,
                 $diary_date
             );
 
             if (mysqli_stmt_execute($stmt)) {
-                mysqli_stmt_close($stmt);
-                header("Location: diary.php?success=added");
-                exit();
+
+               header("Location: diary.php");
+               exit();
+
+            } else {
+
+                $message = "Unable to save the journal entry.";
+                $message_type = "danger";
             }
 
             mysqli_stmt_close($stmt);
-        }
 
-        $message = "<div class='alert alert-danger'>Failed to add journal entry.</div>";
+        } else {
+
+            $message = "Database error.";
+            $message_type = "danger";
+        }
     }
 }
 
-// Update journal entry.
 if (isset($_POST['update_diary'])) {
+
     $diary_id = (int)($_POST['diary_id'] ?? 0);
-    $title = trim($_POST['title'] ?? '');
-    $content = trim($_POST['content'] ?? '');
-    $mood_status = trim($_POST['mood_status'] ?? '');
-    $diary_date = trim($_POST['diary_date'] ?? '');
+    $title = trim($_POST['title'] ?? "");
+    $content = trim($_POST['content'] ?? "");
+    $mood = trim($_POST['mood_status'] ?? "Neutral");
+    $diary_date = $_POST['diary_date'] ?? date("Y-m-d");
 
-    $allowedMoods = ['Happy', 'Good', 'Neutral', 'Sad', 'Stressed', 'Angry'];
+    if ($diary_id <= 0) {
 
-    if ($diary_id <= 0 || $title === '' || $content === '' || $diary_date === '') {
-        $message = "<div class='alert alert-danger'>Please complete all required fields.</div>";
-    } elseif (!in_array($mood_status, $allowedMoods, true)) {
-        $message = "<div class='alert alert-danger'>Please select a valid mood.</div>";
+        $message = "Invalid journal entry.";
+        $message_type = "danger";
+
+    } elseif ($title === "") {
+
+        $message = "Please enter a title.";
+        $message_type = "danger";
+
+    } elseif ($content === "") {
+
+        $message = "Please enter your journal content.";
+        $message_type = "danger";
+
+    } elseif ($diary_date === "") {
+
+        $message = "Please select a date.";
+        $message_type = "danger";
+
     } else {
+
         $stmt = mysqli_prepare(
             $con,
             "UPDATE diary
-             SET title = ?, content = ?, mood_status = ?, diary_date = ?
-             WHERE diary_id = ? AND user_id = ?"
+             SET title = ?,
+                 content = ?,
+                 mood_status = ?,
+                 diary_date = ?
+             WHERE diary_id = ?
+             AND user_id = ?"
         );
 
         if ($stmt) {
+
             mysqli_stmt_bind_param(
                 $stmt,
                 "ssssii",
                 $title,
                 $content,
-                $mood_status,
+                $mood,
                 $diary_date,
                 $diary_id,
                 $user_id
             );
 
             if (mysqli_stmt_execute($stmt)) {
-                mysqli_stmt_close($stmt);
-                header("Location: diary.php?success=updated");
+
+                header("Location: diary.php");
                 exit();
+
+            } else {
+
+                $message = "Unable to update the journal entry.";
+                $message_type = "danger";
+            }
+
+            mysqli_stmt_close($stmt);
+
+        } else {
+
+            $message = "Database error.";
+            $message_type = "danger";
+        }
+    }
+}
+
+if (isset($_GET['delete'])) {
+
+    $diary_id = (int)$_GET['delete'];
+
+    if ($diary_id > 0) {
+
+        $stmt = mysqli_prepare(
+            $con,
+            "DELETE FROM diary
+             WHERE diary_id = ?
+             AND user_id = ?"
+        );
+
+        if ($stmt) {
+
+            mysqli_stmt_bind_param(
+                $stmt,
+                "ii",
+                $diary_id,
+                $user_id
+            );
+
+            if (mysqli_stmt_execute($stmt)) {
+
+                header("Location: diary.php");
+                exit();
+
+            } else {
+
+                $message = "Unable to delete the journal entry.";
+                $message_type = "danger";
             }
 
             mysqli_stmt_close($stmt);
         }
-
-        $message = "<div class='alert alert-danger'>Failed to update journal entry.</div>";
     }
 }
 
-// Load the record being edited.
-$edit_record = null;
 if (isset($_GET['edit'])) {
-    $diary_id = (int)$_GET['edit'];
 
-    $stmt = mysqli_prepare(
-        $con,
-        "SELECT * FROM diary WHERE diary_id = ? AND user_id = ? LIMIT 1"
-    );
+    $edit_id = (int)$_GET['edit'];
 
-    if ($stmt) {
-        mysqli_stmt_bind_param($stmt, "ii", $diary_id, $user_id);
-        mysqli_stmt_execute($stmt);
-        $result = mysqli_stmt_get_result($stmt);
-        $edit_record = mysqli_fetch_assoc($result);
-        mysqli_stmt_close($stmt);
+    if ($edit_id > 0) {
+
+        $stmt = mysqli_prepare(
+            $con,
+            "SELECT diary_id, title, content, mood_status, diary_date
+             FROM diary
+             WHERE diary_id = ?
+             AND user_id = ?
+             LIMIT 1"
+        );
+
+        if ($stmt) {
+
+            mysqli_stmt_bind_param(
+                $stmt,
+                "ii",
+                $edit_id,
+                $user_id
+            );
+
+            mysqli_stmt_execute($stmt);
+
+            $result = mysqli_stmt_get_result($stmt);
+
+            $edit_data = mysqli_fetch_assoc($result);
+
+            if ($edit_data) {
+
+                $edit_title = $edit_data['title'];
+                $edit_content = $edit_data['content'];
+                $edit_mood = $edit_data['mood_status'];
+                $edit_date = $edit_data['diary_date'];
+
+            } else {
+
+                $edit_id = 0;
+
+                $message = "Journal entry not found.";
+                $message_type = "danger";
+            }
+
+            mysqli_stmt_close($stmt);
+        }
     }
 }
 
-// Retrieve the current user's journal entries.
-$stmt = mysqli_prepare(
+$diaryResult = mysqli_query(
     $con,
     "SELECT diary_id, title, content, mood_status, diary_date
      FROM diary
-     WHERE user_id = ?
+     WHERE user_id = $user_id
      ORDER BY diary_date DESC, diary_id DESC"
 );
 
-$result = false;
-if ($stmt) {
-    mysqli_stmt_bind_param($stmt, "i", $user_id);
-    mysqli_stmt_execute($stmt);
-    $result = mysqli_stmt_get_result($stmt);
-}
+ob_start();
 ?>
 
-<div class="row">
+<style>
+.diary-page {
+    width: 100%;
+    max-width: 100%;
+}
 
-    <!-- Add/Edit form -->
-    <div class="col-md-4">
-        <div class="card mb-4" id="diary-form">
-            <div class="card-body">
-                <?php echo $message; ?>
+.diary-form {
+    width: 100%;
+}
 
-                <?php if ($edit_record): ?>
-                    <h4 class="text-danger mb-4">
-                        <i class="mdi mdi-pencil"></i>
-                        Edit Journal Entry
-                    </h4>
+.diary-form textarea {
+    width: 100%;
+    min-height: 160px;
+    resize: vertical;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    white-space: pre-wrap;
+}
 
-                    <form method="POST" action="">
-                        <input type="hidden" name="diary_id" value="<?php echo (int)$edit_record['diary_id']; ?>">
+.diary-table-wrapper {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+}
 
-                        <div class="form-group">
-                            <label class="text-white">Journal Date</label>
-                            <input type="date"
-                                name="diary_date"
-                                class="form-control"
-                                value="<?php echo htmlspecialchars($edit_record['diary_date']); ?>"
-                                required>
-                        </div>
+.diary-table {
+    width: 100%;
+    min-width: 800px;
+    table-layout: fixed;
+    border-collapse: collapse;
+}
 
-                        <div class="form-group">
-                            <label class="text-white">Title</label>
-                            <input type="text"
-                                name="title"
-                                class="form-control"
-                                maxlength="150"
-                                value="<?php echo htmlspecialchars($edit_record['title']); ?>"
-                                required>
-                        </div>
+.diary-table th,
+.diary-table td {
+    vertical-align: middle;
+    padding: 15px 20px;
+}
 
-                        <div class="form-group">
-                            <label class="text-white">Mood</label>
-                            <select name="mood_status" class="form-control" required>
-                                <?php
-                                $moods = ['Happy', 'Good', 'Neutral', 'Sad', 'Stressed', 'Angry'];
-                                foreach ($moods as $mood):
-                                ?>
-                                    <option value="<?php echo $mood; ?>"
-                                        <?php echo ($edit_record['mood_status'] === $mood) ? 'selected' : ''; ?>>
-                                        <?php echo $mood; ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
+.diary-table th:nth-child(1),
+.diary-table td:nth-child(1) {
+    width: 14%;
+}
 
-                        <div class="form-group">
-                            <label class="text-white">Journal Content</label>
-                            <textarea name="content"
-                                class="form-control"
-                                rows="7"
-                                maxlength="5000"
-                                required><?php echo htmlspecialchars($edit_record['content']); ?></textarea>
-                        </div>
+.diary-table th:nth-child(2),
+.diary-table td:nth-child(2) {
+    width: 23%;
+}
 
-                        <div class="d-flex" style="gap: 8px;">
-                            <button type="submit" name="update_diary" class="btn btn-warning">
-                                <i class="mdi mdi-content-save"></i>
-                                Update Entry
-                            </button>
-                            <a href="diary.php" class="btn btn-secondary">Cancel</a>
-                        </div>
-                    </form>
+.diary-table th:nth-child(3),
+.diary-table td:nth-child(3) {
+    width: 18%;
+}
 
-                <?php else: ?>
-                    <h4 class="text-danger mb-4">
-                        <i class="mdi mdi-book-open-page-variant"></i>
-                        Add Journal Entry
-                    </h4>
+.diary-table th:nth-child(4),
+.diary-table td:nth-child(4) {
+    width: 15%;
+}
 
-                    <form method="POST" action="">
-                        <div class="form-group">
-                            <label class="text-white">Journal Date</label>
-                            <input type="date"
-                                name="diary_date"
-                                class="form-control"
-                                value="<?php echo date('Y-m-d'); ?>"
-                                required>
-                        </div>
+.diary-table th:nth-child(5),
+.diary-table td:nth-child(5) {
+    width: 30%;
+}
 
-                        <div class="form-group">
-                            <label class="text-white">Title</label>
-                            <input type="text"
-                                name="title"
-                                class="form-control"
-                                maxlength="150"
-                                placeholder="How was your day?"
-                                required>
-                        </div>
+.diary-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
+}
 
-                        <div class="form-group">
-                            <label class="text-white">Mood</label>
-                            <select name="mood_status" class="form-control" required>
-                                <option value="Happy">Happy</option>
-                                <option value="Good">Good</option>
-                                <option value="Neutral" selected>Neutral</option>
-                                <option value="Sad">Sad</option>
-                                <option value="Stressed">Stressed</option>
-                                <option value="Angry">Angry</option>
-                            </select>
-                        </div>
+.diary-action {
+    white-space: nowrap;
+}
 
-                        <div class="form-group">
-                            <label class="text-white">Journal Content</label>
-                            <textarea name="content"
-                                class="form-control"
-                                rows="7"
-                                maxlength="5000"
-                                placeholder="Write about your thoughts, experiences, or anything you would like to remember..."
-                                required></textarea>
-                        </div>
+.diary-action .btn {
+    margin-right: 5px;
+    margin-bottom: 4px;
+}
 
-                        <button type="submit" name="add_diary" class="btn btn-danger btn-block">
-                            <i class="mdi mdi-plus"></i>
-                            Add Journal Entry
-                        </button>
-                    </form>
-                <?php endif; ?>
-            </div>
+.diary-view-btn {
+    min-width: 85px;
+}
+
+.diary-modal {
+    display: none;
+    position: fixed;
+    z-index: 99999;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.75);
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.diary-modal-box {
+    width: 90%;
+    max-width: 800px;
+    max-height: 85vh;
+    background: #202328;
+    border-radius: 8px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.diary-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 18px 22px;
+    border-bottom: 1px solid #3a3d42;
+    flex-shrink: 0;
+}
+
+.diary-modal-header h4 {
+    margin: 0;
+    color: #ffffff;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    padding-right: 20px;
+}
+
+.diary-modal-close {
+    border: none;
+    background: transparent;
+    color: #ffffff;
+    font-size: 30px;
+    cursor: pointer;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.diary-modal-body {
+    padding: 22px;
+    overflow-y: auto;
+    max-height: 60vh;
+    color: #ffffff;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    line-height: 1.7;
+}
+
+.diary-modal-footer {
+    padding: 15px 22px;
+    border-top: 1px solid #3a3d42;
+    text-align: right;
+    flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+
+    .diary-table {
+        min-width: 800px;
+    }
+
+    .diary-modal {
+        padding: 10px;
+    }
+
+    .diary-modal-box {
+        width: 95%;
+        max-height: 90vh;
+    }
+
+    .diary-modal-body {
+        max-height: 65vh;
+    }
+}
+</style>
+
+<div class="diary-page">
+
+    <?php if ($message !== ""): ?>
+
+        <div class="alert alert-<?php echo $message_type; ?> mb-4">
+            <?php echo htmlspecialchars($message); ?>
         </div>
+
+    <?php endif; ?>
+
+
+    <div class="card mb-4">
+
+        <div class="card-body diary-form">
+
+            <?php if ($edit_id > 0): ?>
+
+                <h3 class="text-white mb-4">
+
+                    <i class="mdi mdi-pencil text-warning"></i>
+
+                    Edit Journal Entry
+
+                </h3>
+
+                <form method="POST">
+
+                    <input
+                        type="hidden"
+                        name="diary_id"
+                        value="<?php echo $edit_id; ?>"
+                    >
+
+                    <div class="form-group">
+
+                        <label class="text-white">
+                            Title
+                        </label>
+
+                        <input
+                            type="text"
+                            name="title"
+                            class="form-control"
+                            value="<?php echo htmlspecialchars($edit_title); ?>"
+                            required
+                        >
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label class="text-white">
+                            Content
+                        </label>
+
+                        <textarea
+                            name="content"
+                            class="form-control auto-expand"
+                            rows="6"
+                            required
+                        ><?php echo htmlspecialchars($edit_content); ?></textarea>
+
+                    </div>
+
+
+                    <div class="row">
+
+                        <div class="col-md-6">
+
+                            <div class="form-group">
+
+                                <label class="text-white">
+                                    Mood
+                                </label>
+
+                                <select
+                                    name="mood_status"
+                                    class="form-control"
+                                >
+
+                                    <option
+                                        value="Happy"
+                                        <?php echo $edit_mood === "Happy" ? "selected" : ""; ?>
+                                    >
+                                        Happy
+                                    </option>
+
+                                    <option
+                                        value="Good"
+                                        <?php echo $edit_mood === "Good" ? "selected" : ""; ?>
+                                    >
+                                        Good
+                                    </option>
+
+                                    <option
+                                        value="Neutral"
+                                        <?php echo $edit_mood === "Neutral" ? "selected" : ""; ?>
+                                    >
+                                        Neutral
+                                    </option>
+
+                                    <option
+                                        value="Sad"
+                                        <?php echo $edit_mood === "Sad" ? "selected" : ""; ?>
+                                    >
+                                        Sad
+                                    </option>
+
+                                    <option
+                                        value="Angry"
+                                        <?php echo $edit_mood === "Angry" ? "selected" : ""; ?>
+                                    >
+                                        Angry
+                                    </option>
+
+                                </select>
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="col-md-6">
+
+                            <div class="form-group">
+
+                                <label class="text-white">
+                                    Date
+                                </label>
+
+                                <input
+                                    type="date"
+                                    name="diary_date"
+                                    class="form-control"
+                                    value="<?php echo htmlspecialchars($edit_date); ?>"
+                                    required
+                                >
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <button
+                        type="submit"
+                        name="update_diary"
+                        class="btn btn-warning"
+                    >
+
+                        <i class="mdi mdi-content-save"></i>
+
+                        Update Journal
+
+                    </button>
+
+
+                    <a
+                        href="diary.php"
+                        class="btn btn-secondary"
+                    >
+
+                        Cancel
+
+                    </a>
+
+                </form>
+
+            <?php else: ?>
+
+                <h3 class="text-white mb-4">
+
+                    <i class="mdi mdi-book-plus text-primary"></i>
+
+                    Add Journal Entry
+
+                </h3>
+
+                <form method="POST">
+
+                    <div class="form-group">
+
+                        <label class="text-white">
+                            Title
+                        </label>
+
+                        <input
+                            type="text"
+                            name="title"
+                            class="form-control"
+                            placeholder="Enter journal title"
+                            required
+                        >
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label class="text-white">
+                            Content
+                        </label>
+
+                        <textarea
+                            name="content"
+                            class="form-control auto-expand"
+                            rows="6"
+                            placeholder="Write your thoughts, experiences or anything you want to remember..."
+                            required
+                        ></textarea>
+
+                    </div>
+
+
+                    <div class="row">
+
+                        <div class="col-md-6">
+
+                            <div class="form-group">
+
+                                <label class="text-white">
+                                    Mood
+                                </label>
+
+                                <select
+                                    name="mood_status"
+                                    class="form-control"
+                                >
+
+                                    <option value="Happy">
+                                        Happy
+                                    </option>
+
+                                    <option value="Good">
+                                        Good
+                                    </option>
+
+                                    <option value="Neutral" selected>
+                                        Neutral
+                                    </option>
+
+                                    <option value="Sad">
+                                        Sad
+                                    </option>
+
+                                    <option value="Angry">
+                                        Angry
+                                    </option>
+
+                                </select>
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="col-md-6">
+
+                            <div class="form-group">
+
+                                <label class="text-white">
+                                    Date
+                                </label>
+
+                                <input
+                                    type="date"
+                                    name="diary_date"
+                                    class="form-control"
+                                    value="<?php echo date('Y-m-d'); ?>"
+                                    required
+                                >
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <button
+                        type="submit"
+                        name="add_diary"
+                        class="btn btn-primary"
+                    >
+
+                        <i class="mdi mdi-content-save"></i>
+
+                        Save Journal
+
+                    </button>
+
+                </form>
+
+            <?php endif; ?>
+
+        </div>
+
     </div>
 
-    <!-- Journal records -->
-    <div class="col-md-8">
-        <div class="card">
-            <div class="card-body">
-                <h4 class="text-white mb-4">
-                    <i class="mdi mdi-book-multiple text-danger"></i>
-                    My Journal Entries
-                </h4>
 
-                <div class="table-responsive">
-                    <table class="table table-dark table-hover">
-                        <thead>
-                            <tr>
-                                <th>Date</th>
-                                <th>Title</th>
-                                <th>Mood</th>
-                                <th>Content</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php if ($result && mysqli_num_rows($result) > 0): ?>
-                                <?php while ($row = mysqli_fetch_assoc($result)): ?>
-                                    <tr>
-                                        <td><?php echo htmlspecialchars($row['diary_date']); ?></td>
-                                        <td><?php echo htmlspecialchars($row['title']); ?></td>
-                                        <td>
-                                            <?php
-                                            $moodClass = 'text-info';
-                                            if ($row['mood_status'] === 'Happy' || $row['mood_status'] === 'Good') {
-                                                $moodClass = 'text-success';
-                                            } elseif ($row['mood_status'] === 'Sad' || $row['mood_status'] === 'Stressed' || $row['mood_status'] === 'Angry') {
-                                                $moodClass = 'text-danger';
-                                            }
-                                            ?>
-                                            <span class="<?php echo $moodClass; ?>">
-                                                <?php echo htmlspecialchars($row['mood_status']); ?>
-                                            </span>
-                                        </td>
-                                        <td style="min-width: 220px; max-width: 350px;">
-                                            <?php
-                                            $preview = $row['content'];
-                                            if (strlen($preview) > 120) {
-                                                $preview = substr($preview, 0, 120) . '...';
-                                            }
-                                            echo nl2br(htmlspecialchars($preview));
-                                            ?>
-                                        </td>
-                                        <td style="white-space: nowrap;">
-                                            <a href="diary.php?edit=<?php echo (int)$row['diary_id']; ?>#diary-form"
-                                                class="btn btn-warning btn-sm">
-                                                Edit
-                                            </a>
-                                            <a href="diary.php?delete=<?php echo (int)$row['diary_id']; ?>"
-                                                class="btn btn-danger btn-sm"
-                                                onclick="return confirm('Are you sure you want to delete this journal entry?');">
-                                                Delete
-                                            </a>
-                                        </td>
-                                    </tr>
-                                <?php endwhile; ?>
-                            <?php else: ?>
+    <div class="card">
+
+        <div class="card-body">
+
+            <h3 class="text-white mb-4">
+
+                <i class="mdi mdi-book text-danger"></i>
+
+                My Journal Entries
+
+            </h3>
+
+
+            <div class="diary-table-wrapper">
+
+                <table class="table table-dark table-hover diary-table">
+
+                    <thead>
+
+                        <tr>
+
+                            <th>
+                                Mood
+                            </th>
+
+                            <th>
+                                Title
+                            </th>
+
+                            <th>
+                                Date
+                            </th>
+
+                            <th>
+                                Content
+                            </th>
+
+                            <th>
+                                Action
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody>
+
+                        <?php if (
+                            $diaryResult &&
+                            mysqli_num_rows($diaryResult) > 0
+                        ): ?>
+
+                            <?php while (
+                                $diary =
+                                mysqli_fetch_assoc($diaryResult)
+                            ): ?>
+
                                 <tr>
-                                    <td colspan="5" class="text-center text-muted">
-                                        No journal entries found. Add your first entry using the form.
+
+                                    <td>
+
+                                        <?php
+                                        echo htmlspecialchars(
+                                            $diary['mood_status']
+                                        );
+                                        ?>
+
                                     </td>
+
+
+                                    <td>
+
+                                        <div class="diary-title">
+
+                                            <?php
+                                            echo htmlspecialchars(
+                                                $diary['title']
+                                            );
+                                            ?>
+
+                                        </div>
+
+                                    </td>
+
+
+                                    <td>
+
+                                        <?php
+                                        echo date(
+                                            'd M Y',
+                                            strtotime(
+                                                $diary['diary_date']
+                                            )
+                                        );
+                                        ?>
+
+                                    </td>
+
+
+                                    <td>
+
+                                        <button
+                                            type="button"
+                                            class="btn btn-info btn-sm diary-view-btn"
+                                            onclick="openDiaryContent(
+                                                <?php
+                                                echo htmlspecialchars(
+                                                    json_encode(
+                                                        $diary['title'],
+                                                        JSON_UNESCAPED_UNICODE
+                                                    ),
+                                                    ENT_QUOTES,
+                                                    'UTF-8'
+                                                );
+                                                ?>,
+                                                <?php
+                                                echo htmlspecialchars(
+                                                    json_encode(
+                                                        $diary['content'],
+                                                        JSON_UNESCAPED_UNICODE
+                                                    ),
+                                                    ENT_QUOTES,
+                                                    'UTF-8'
+                                                );
+                                                ?>
+                                            )"
+                                        >
+
+                                            <i class="mdi mdi-eye"></i>
+
+                                            View
+
+                                        </button>
+
+                                    </td>
+
+
+                                    <td class="diary-action">
+
+                                        <a
+                                            href="diary.php?edit=<?php echo (int)$diary['diary_id']; ?>"
+                                            class="btn btn-warning btn-sm"
+                                        >
+
+                                            <i class="mdi mdi-pencil"></i>
+
+                                            Edit
+
+                                        </a>
+
+
+                                        <a
+                                            href="diary.php?delete=<?php echo (int)$diary['diary_id']; ?>"
+                                            class="btn btn-danger btn-sm"
+                                            onclick="return confirm('Are you sure you want to delete this journal entry?');"
+                                        >
+
+                                            <i class="mdi mdi-delete"></i>
+
+                                            Delete
+
+                                        </a>
+
+                                    </td>
+
                                 </tr>
-                            <?php endif; ?>
-                        </tbody>
-                    </table>
-                </div>
+
+                            <?php endwhile; ?>
+
+                        <?php else: ?>
+
+                            <tr>
+
+                                <td
+                                    colspan="5"
+                                    class="text-center text-muted"
+                                >
+
+                                    No journal entries yet.
+
+                                </td>
+
+                            </tr>
+
+                        <?php endif; ?>
+
+                    </tbody>
+
+                </table>
+
             </div>
+
         </div>
+
     </div>
 
 </div>
 
-<?php
-if ($stmt) {
-    mysqli_stmt_close($stmt);
+
+<div
+    id="diaryContentModal"
+    class="diary-modal"
+    onclick="closeDiaryContent(event)"
+>
+
+    <div
+        class="diary-modal-box"
+        onclick="event.stopPropagation()"
+    >
+
+        <div class="diary-modal-header">
+
+            <h4 id="diaryModalTitle">
+                Journal Content
+            </h4>
+
+            <button
+                type="button"
+                class="diary-modal-close"
+                onclick="closeDiaryModal()"
+            >
+
+                &times;
+
+            </button>
+
+        </div>
+
+
+        <div
+            id="diaryModalContent"
+            class="diary-modal-body"
+        ></div>
+
+
+        <div class="diary-modal-footer">
+
+            <button
+                type="button"
+                class="btn btn-secondary"
+                onclick="closeDiaryModal()"
+            >
+
+                Close
+
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<script>
+function openDiaryContent(title, content) {
+
+    document.getElementById("diaryModalTitle").textContent = title;
+
+    document.getElementById("diaryModalContent").textContent = content;
+
+    document.getElementById("diaryContentModal").style.display = "flex";
+
+    document.body.style.overflow = "hidden";
 }
+
+function closeDiaryModal() {
+
+    document.getElementById("diaryContentModal").style.display = "none";
+
+    document.body.style.overflow = "";
+}
+
+function closeDiaryContent(event) {
+
+    if (event.target.id === "diaryContentModal") {
+
+        closeDiaryModal();
+
+    }
+}
+
+document.addEventListener("keydown", function(event) {
+
+    if (event.key === "Escape") {
+
+        closeDiaryModal();
+
+    }
+
+});
+
+
+document.addEventListener("DOMContentLoaded", function() {
+
+    const textareas = document.querySelectorAll(".auto-expand");
+
+    textareas.forEach(function(textarea) {
+
+        function resizeTextarea() {
+
+            textarea.style.height = "auto";
+
+            textarea.style.height =
+                textarea.scrollHeight + "px";
+        }
+
+        textarea.addEventListener(
+            "input",
+            resizeTextarea
+        );
+
+        resizeTextarea();
+
+    });
+
+});
+</script>
+
+<?php
+
 $pageContent = ob_get_clean();
+
 include "layout.php";
+
 ?>
