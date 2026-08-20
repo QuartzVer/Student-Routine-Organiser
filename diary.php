@@ -247,12 +247,76 @@ if (isset($_GET['edit'])) {
     }
 }
 
+
+/* ─────────────────────────────────────────────
+   Search and Sorting
+   ───────────────────────────────────────────── */
+
+$allowed_sort = [
+    'mood_status',
+    'title',
+    'diary_date'
+];
+
+$allowed_order = [
+    'ASC',
+    'DESC'
+];
+
+$sort = $_GET['sort'] ?? 'diary_date';
+$order = strtoupper($_GET['order'] ?? 'DESC');
+
+$keyword = trim($_GET['search'] ?? '');
+
+if (!in_array($sort, $allowed_sort, true)) {
+
+    $sort = 'diary_date';
+
+}
+
+if (!in_array($order, $allowed_order, true)) {
+
+    $order = 'DESC';
+
+}
+
+$next_order = ($order === 'ASC') ? 'DESC' : 'ASC';
+
+
+/* Search Mood and Title */
+
+if ($keyword !== '') {
+
+    $search = mysqli_real_escape_string(
+        $con,
+        $keyword
+    );
+
+    $diaryQuery = "
+        SELECT diary_id, title, content, mood_status, diary_date
+        FROM diary
+        WHERE user_id = $user_id
+        AND (
+            mood_status LIKE '%$search%'
+            OR title LIKE '%$search%'
+        )
+        ORDER BY $sort $order, diary_id DESC
+    ";
+
+} else {
+
+    $diaryQuery = "
+        SELECT diary_id, title, content, mood_status, diary_date
+        FROM diary
+        WHERE user_id = $user_id
+        ORDER BY $sort $order, diary_id DESC
+    ";
+
+}
+
 $diaryResult = mysqli_query(
     $con,
-    "SELECT diary_id, title, content, mood_status, diary_date
-     FROM diary
-     WHERE user_id = $user_id
-     ORDER BY diary_date DESC, diary_id DESC"
+    $diaryQuery
 );
 
 ob_start();
@@ -343,6 +407,68 @@ ob_start();
     min-width: 85px;
 }
 
+
+/* ─────────────────────────────────────────────
+   Diary Search
+   ───────────────────────────────────────────── */
+
+.diary-header-search {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.diary-header-search h3 {
+    margin-bottom: 0 !important;
+    flex-shrink: 0;
+}
+
+.diary-search-area {
+    width: 500px;
+    max-width: 100%;
+}
+
+.diary-search-form {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    width: 100%;
+}
+
+.diary-search-input {
+    width: 100%;
+    height: 42px;
+}
+
+.diary-search-button {
+    height: 42px;
+    min-width: 95px;
+    margin-left: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+}
+
+.diary-clear-area {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    margin-top: 8px;
+}
+
+.diary-clear-button {
+    min-width: 90px;
+    height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 4px;
+}
+
 .diary-modal {
     display: none;
     position: fixed;
@@ -415,6 +541,30 @@ ob_start();
 }
 
 @media (max-width: 768px) {
+
+    .diary-header-search {
+        display: block;
+    }
+
+    .diary-header-search h3 {
+        margin-bottom: 20px !important;
+    }
+
+    .diary-search-area {
+        width: 100%;
+    }
+
+    .diary-search-form {
+        width: 100%;
+    }
+
+    .diary-search-input {
+        min-width: 0;
+    }
+
+    .diary-clear-area {
+        justify-content: center;
+    }
 
     .diary-table {
         min-width: 800px;
@@ -741,13 +891,64 @@ ob_start();
 
         <div class="card-body">
 
-            <h3 class="text-white mb-4">
+            <div class="diary-header-search">
 
-                <i class="mdi mdi-book text-danger"></i>
+                <h3 class="text-white">
 
-                My Journal Entries
+                    <i class="mdi mdi-book text-danger"></i>
 
-            </h3>
+                    My Journal Entries
+
+                </h3>
+
+
+                <div class="diary-search-area">
+
+                    <form
+                        action="diary.php"
+                        method="GET"
+                        class="diary-search-form"
+                    >
+
+                        <input
+                            type="text"
+                            name="search"
+                            class="form-control diary-search-input"
+                            placeholder="Search mood or title..."
+                            value="<?php echo htmlspecialchars($keyword); ?>"
+                        >
+
+                        <button
+                            type="submit"
+                            class="btn btn-info diary-search-button"
+                        >
+
+                            <i class="mdi mdi-magnify"></i>
+
+                            Search
+
+                        </button>
+
+                        <?php if ($keyword !== ''): ?>
+
+                            <a
+                                href="diary.php"
+                                class="btn btn-outline-secondary diary-clear-button ml-2"
+                            >
+
+                                <i class="mdi mdi-close"></i>
+
+                                Clear
+
+                            </a>
+
+                        <?php endif; ?>
+
+                    </form>
+
+                </div>
+
+            </div>
 
 
             <div class="diary-table-wrapper">
@@ -759,20 +960,66 @@ ob_start();
                         <tr>
 
                             <th>
+
                                 Mood
+
+                                <a
+                                    href="?sort=mood_status&order=<?php echo $next_order; ?>&search=<?php echo urlencode($keyword); ?>"
+                                    style="text-decoration: none;"
+                                >
+
+                                    <i
+                                        class="mdi mdi-sort"
+                                        style="color: white;"
+                                    ></i>
+
+                                </a>
+
                             </th>
 
+
                             <th>
+
                                 Title
+
+                                <a
+                                    href="?sort=title&order=<?php echo $next_order; ?>&search=<?php echo urlencode($keyword); ?>"
+                                    style="text-decoration: none;"
+                                >
+
+                                    <i
+                                        class="mdi mdi-sort"
+                                        style="color: white;"
+                                    ></i>
+
+                                </a>
+
                             </th>
 
+
                             <th>
+
                                 Date
+
+                                <a
+                                    href="?sort=diary_date&order=<?php echo $next_order; ?>&search=<?php echo urlencode($keyword); ?>"
+                                    style="text-decoration: none;"
+                                >
+
+                                    <i
+                                        class="mdi mdi-sort"
+                                        style="color: white;"
+                                    ></i>
+
+                                </a>
+
                             </th>
+
 
                             <th>
                                 Content
                             </th>
+
 
                             <th>
                                 Action
@@ -792,7 +1039,7 @@ ob_start();
 
                             <?php while (
                                 $diary =
-                                mysqli_fetch_assoc($diaryResult)
+                                    mysqli_fetch_assoc($diaryResult)
                             ): ?>
 
                                 <tr>
@@ -916,7 +1163,16 @@ ob_start();
                                     class="text-center text-muted"
                                 >
 
-                                    No journal entries yet.
+                                    <?php if ($keyword !== ''): ?>
+
+                                        No journal entries match
+                                        "<?php echo htmlspecialchars($keyword); ?>".
+
+                                    <?php else: ?>
+
+                                        No journal entries yet.
+
+                                    <?php endif; ?>
 
                                 </td>
 

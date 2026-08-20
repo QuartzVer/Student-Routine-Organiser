@@ -1,4 +1,3 @@
-
 <?php
 require('database.php');
 
@@ -32,7 +31,6 @@ if (isset($_GET['token'])) {
         if ((time() - $created_time) <= 1800) {
 
             $show_reset_form = true;
-
         } else {
 
             mysqli_query(
@@ -45,7 +43,6 @@ if (isset($_GET['token'])) {
                 This reset link has expired.
             </div>";
         }
-
     } else {
 
         $message = "
@@ -70,7 +67,29 @@ if (isset($_POST['reset_password'])) {
     $password = $_POST['password'];
     $confirm_password = $_POST['confirm_password'];
 
-    if ($password !== $confirm_password) {
+    $password_error = "";
+
+    if (strlen($password) < 8) {
+        $password_error = "Password must be at least 8 characters long.";
+    } elseif (!preg_match('/[A-Z]/', $password)) {
+        $password_error = "Password must contain at least one uppercase letter.";
+    } elseif (!preg_match('/[a-z]/', $password)) {
+        $password_error = "Password must contain at least one lowercase letter.";
+    } elseif (!preg_match('/[0-9]/', $password)) {
+        $password_error = "Password must contain at least one number.";
+    } elseif (!preg_match('/[\W_]/', $password)) {
+        $password_error = "Password must contain at least one special character (e.g. %, !, @, #).";
+    }
+
+    if ($password_error != "") {
+
+        $message = "
+    <div class='alert alert-danger'>
+        $password_error
+    </div>";
+
+        $show_reset_form = true;
+    } elseif ($password !== $confirm_password) {
 
         $message = "
         <div class='alert alert-danger'>
@@ -78,7 +97,6 @@ if (isset($_POST['reset_password'])) {
         </div>";
 
         $show_reset_form = true;
-
     } else {
 
         // Get email associated with token
@@ -129,7 +147,6 @@ if (isset($_POST['reset_password'])) {
                     </div>";
 
                     $show_reset_form = false;
-
                 } else {
 
                     $message = "
@@ -139,7 +156,6 @@ if (isset($_POST['reset_password'])) {
 
                     $show_reset_form = true;
                 }
-
             } else {
 
                 mysqli_query(
@@ -153,7 +169,6 @@ if (isset($_POST['reset_password'])) {
                     This reset link has expired.
                 </div>";
             }
-
         } else {
 
             $message = "
@@ -216,7 +231,6 @@ if (isset($_POST['send_reset'])) {
             <div class='alert alert-success'>
                 Reset link generated successfully.
             </div>";
-
         } else {
 
             $message = "
@@ -224,7 +238,6 @@ if (isset($_POST['send_reset'])) {
                 Unable to generate reset link.
             </div>";
         }
-
     } else {
 
         $message = "
@@ -239,233 +252,289 @@ if (isset($_POST['send_reset'])) {
 <html lang="en">
 
 <head>
+    <link rel="shortcut icon" href="icon.png" />
 
     <meta charset="utf-8">
 
     <meta name="viewport"
-          content="width=device-width, initial-scale=1">
+        content="width=device-width, initial-scale=1">
 
     <title>Forgot Password</title>
 
     <link rel="stylesheet"
-          href="assets/vendors/mdi/css/materialdesignicons.min.css">
+        href="assets/vendors/mdi/css/materialdesignicons.min.css">
 
     <link rel="stylesheet"
-          href="assets/vendors/ti-icons/css/themify-icons.css">
+        href="assets/vendors/ti-icons/css/themify-icons.css">
 
     <link rel="stylesheet"
-          href="assets/vendors/css/vendor.bundle.base.css">
+        href="assets/vendors/css/vendor.bundle.base.css">
 
     <link rel="stylesheet"
-          href="assets/vendors/font-awesome/css/font-awesome.min.css">
+        href="assets/vendors/font-awesome/css/font-awesome.min.css">
 
     <link rel="stylesheet"
-          href="assets/css/style.css">
-<style>
-    html,
-    body {
-        width: 100%;
-        min-height: 100%;
-        margin: 0;
-        padding: 0;
-        overflow-x: hidden;
-        background: #000000;
-    }
+        href="assets/css/style.css">
+    <style>
+        html,
+        body {
+            width: 100%;
+            min-height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+            background: #000000;
+        }
 
-    .container-scroller {
-        width: 100%;
-        min-height: 100vh;
-        margin: 0;
-        padding: 0;
-    }
+        .container-scroller {
+            width: 100%;
+            min-height: 100vh;
+            margin: 0;
+            padding: 0;
+        }
 
-    .page-body-wrapper.full-page-wrapper {
-        width: 100%;
-        min-height: 100vh;
-        margin: 0;
-        padding: 0;
-    }
+        .page-body-wrapper.full-page-wrapper {
+            width: 100%;
+            min-height: 100vh;
+            margin: 0;
+            padding: 0;
+        }
 
-    .row.w-100 {
-        width: 100% !important;
-        margin-left: 0 !important;
-        margin-right: 0 !important;
-    }
+        .row.w-100 {
+            width: 100% !important;
+            margin-left: 0 !important;
+            margin-right: 0 !important;
+        }
 
-    .content-wrapper.full-page-wrapper {
-        width: 100% !important;
-        min-height: 100vh !important;
-        margin: 0 !important;
-        padding: 0;
-    }
+        .content-wrapper.full-page-wrapper {
+            width: 100% !important;
+            min-height: 100vh !important;
+            margin: 0 !important;
+            padding: 0;
+        }
 
-    .auth.login-bg {
-        min-height: 100vh !important;
-        background-size: cover;
-        background-position: center;
-    }
-</style>
+        .auth.login-bg {
+            min-height: 100vh !important;
+            background-size: cover;
+            background-position: center;
+        }
 
-          
+        .password-requirements {
+            margin-top: 8px;
+            line-height: 1.8;
+        }
+
+        .password-requirements div {
+            color: #dc3545;
+        }
+
+        .password-requirements div.valid {
+            color: #28a745;
+        }
+
+        .requirement-icon {
+            display: inline-block;
+            width: 20px;
+            font-weight: bold;
+        }
+    </style>
+
+
 </head>
 
 <body>
 
-<div class="container-scroller">
+    <div class="container-scroller">
 
-    <div class="container-fluid page-body-wrapper full-page-wrapper">
+        <div class="container-fluid page-body-wrapper full-page-wrapper">
 
-        <div class="row w-100">
+            <div class="row w-100">
 
-            <div class="content-wrapper full-page-wrapper
+                <div class="content-wrapper full-page-wrapper
                         d-flex align-items-center auth login-bg">
 
-                <div class="card col-lg-4 mx-auto">
+                    <div class="card col-lg-4 mx-auto">
 
-                    <div class="card-body px-5 py-5">
+                        <div class="card-body px-5 py-5">
 
-                        <?php if ($show_reset_form) { ?>
+                            <?php if ($show_reset_form) { ?>
 
-                            <!-- ==========================
+                                <!-- ==========================
                                  RESET PASSWORD FORM
                                  ========================== -->
 
-                            <h3 class="card-title mb-3">
-                                Reset Password
-                            </h3>
+                                <h3 class="card-title mb-3">
+                                    Reset Password
+                                </h3>
 
-                            <?php echo $message; ?>
+                                <?php echo $message; ?>
 
-                            <form method="POST">
-
-                                <input
-                                    type="hidden"
-                                    name="token"
-                                    value="<?php echo htmlspecialchars($token); ?>">
-
-                                <div class="form-group">
-
-                                    <label>New Password</label>
+                                <form method="POST" id="resetPasswordForm">
 
                                     <input
-                                        type="password"
-                                        name="password"
-                                        class="form-control p_input"              
-                                        required>
+                                        type="hidden"
+                                        name="token"
+                                        value="<?php echo htmlspecialchars($token); ?>">
 
-                                </div>
+                                    <div class="form-group">
 
-                                <div class="form-group">
+                                        <label>New Password</label>
 
-                                    <label>Confirm Password</label>
+                                        <input
+                                            type="password"
+                                            name="password"
+                                            id="password"
+                                            class="form-control p_input"
+                                            minlength="8"
+                                            required>
 
-                                    <input
-                                        type="password"
-                                        name="confirm_password"
-                                        class="form-control p_input"
-                                        required>
+                                        <div class="password-requirements">
 
-                                </div>
+                                            <div id="lengthRequirement">
+                                                <span class="requirement-icon">✗</span>
+                                                At least 8 characters
+                                            </div>
 
-                                <div class="text-center d-grid">
+                                            <div id="uppercaseRequirement">
+                                                <span class="requirement-icon">✗</span>
+                                                At least one uppercase letter (A-Z)
+                                            </div>
 
-                                    <button
-                                        type="submit"
-                                        name="reset_password"
-                                        class="btn btn-primary btn-block enter-btn">
+                                            <div id="lowercaseRequirement">
+                                                <span class="requirement-icon">✗</span>
+                                                At least one lowercase letter (a-z)
+                                            </div>
 
-                                        Update Password
+                                            <div id="numberRequirement">
+                                                <span class="requirement-icon">✗</span>
+                                                At least one number (0-9)
+                                            </div>
 
-                                    </button>
+                                            <div id="specialRequirement">
+                                                <span class="requirement-icon">✗</span>
+                                                At least one special character (e.g. %, !, @, #)
+                                            </div>
 
-                                </div>
+                                        </div>
 
-                            </form>
+                                    </div>
 
-                            <p class="text-center mt-4">
+                                    <div class="form-group">
 
-                                <a href="login.php">
-                                    Back to Login
-                                </a>
+                                        <label>Confirm Password</label>
 
-                            </p>
+                                        <input
+                                            type="password"
+                                            name="confirm_password"
+                                            id="confirmPassword"
+                                            class="form-control p_input"
+                                            required>
 
-                        <?php } else { ?>
+                                    </div>
 
-                            <!-- ==========================
+                                    <div class="text-center d-grid">
+
+                                        <button
+                                            type="submit"
+                                            name="reset_password"
+                                            id="updatePasswordButton"
+                                            class="btn btn-primary btn-block enter-btn"
+                                            disabled>
+
+                                            Update Password
+
+                                        </button>
+
+                                    </div>
+
+                                </form>
+
+                                <p class="text-center mt-4">
+
+                                    <a href="login.php">
+                                        Back to Login
+                                    </a>
+
+                                </p>
+
+                            <?php } else { ?>
+
+                                <!-- ==========================
                                  FORGOT PASSWORD FORM
                                  ========================== -->
 
-                            <h3 class="card-title mb-3">
-                                Forgot Password
-                            </h3>
+                                <h3 class="card-title mb-3">
+                                    Forgot Password
+                                </h3>
 
-                            <p class="text-muted">
-                                Enter your registered email address
-                                to reset your password.
-                            </p>
+                                <p class="text-muted">
+                                    Enter your registered email address
+                                    to reset your password.
+                                </p>
 
-                            <?php echo $message; ?>
+                                <?php echo $message; ?>
 
-                            <form method="POST">
+                                <form method="POST">
 
-                                <div class="form-group">
+                                    <div class="form-group">
 
-                                    <label>Email</label>
+                                        <label>Email</label>
 
-                                    <input
-                                        type="email"
-                                        name="email"
-                                        class="form-control p_input"
-                                        placeholder="Enter your email"
-                                        required>
+                                        <input
+                                            type="email"
+                                            name="email"
+                                            class="form-control p_input"
+                                            placeholder="Enter your email"
+                                            required>
 
-                                </div>
+                                    </div>
 
-                                <div class="text-center d-grid">
+                                    <div class="text-center d-grid">
 
-                                    <button
-                                        type="submit"
-                                        name="send_reset"
-                                        class="btn btn-primary btn-block enter-btn">
+                                        <button
+                                            type="submit"
+                                            name="send_reset"
+                                            class="btn btn-primary btn-block enter-btn">
 
-                                        Show Reset Link
+                                            Show Reset Link
 
-                                    </button>
+                                        </button>
 
-                                </div>
+                                    </div>
 
-                            </form>
+                                </form>
 
-                            <?php if ($reset_link != "") { ?>
+                                <?php if ($reset_link != "") { ?>
 
-                                <div class="alert alert-info mt-4">
+                                    <div class="alert alert-info mt-4">
 
-                                    <strong>
-                                        Reset Link:
-                                    </strong>
+                                        <strong>
+                                            Reset Link:
+                                        </strong>
 
-                                    <br><br>
+                                        <br><br>
 
-                                    <a href="<?php echo htmlspecialchars($reset_link); ?>">
+                                        <a href="<?php echo htmlspecialchars($reset_link); ?>">
 
-                                        <?php echo htmlspecialchars($reset_link); ?>
+                                            <?php echo htmlspecialchars($reset_link); ?>
 
+                                        </a>
+
+                                    </div>
+
+                                <?php } ?>
+
+                                <p class="text-center mt-4">
+
+                                    <a href="login.php">
+                                        Back to Login
                                     </a>
 
-                                </div>
+                                </p>
 
                             <?php } ?>
 
-                            <p class="text-center mt-4">
-
-                                <a href="login.php">
-                                    Back to Login
-                                </a>
-
-                            </p>
-
-                        <?php } ?>
+                        </div>
 
                     </div>
 
@@ -477,16 +546,98 @@ if (isset($_POST['send_reset'])) {
 
     </div>
 
-</div>
+    <script src="assets/vendors/js/vendor.bundle.base.js"></script>
 
-<script src="assets/vendors/js/vendor.bundle.base.js"></script>
+    <script src="assets/js/off-canvas.js"></script>
+    <script src="assets/js/misc.js"></script>
+    <script src="assets/js/settings.js"></script>
+    <script src="assets/js/todolist.js"></script>
 
-<script src="assets/js/off-canvas.js"></script>
-<script src="assets/js/misc.js"></script>
-<script src="assets/js/settings.js"></script>
-<script src="assets/js/todolist.js"></script>
+    <?php if ($show_reset_form) { ?>
+
+    <script>
+
+        const resetForm = document.getElementById("resetPasswordForm");
+        const password = document.getElementById("password");
+        const updatePasswordButton = document.getElementById("updatePasswordButton");
+
+        const lengthRequirement = document.getElementById("lengthRequirement");
+        const uppercaseRequirement = document.getElementById("uppercaseRequirement");
+        const lowercaseRequirement = document.getElementById("lowercaseRequirement");
+        const numberRequirement = document.getElementById("numberRequirement");
+        const specialRequirement = document.getElementById("specialRequirement");
+
+        function updateRequirement(element, valid) {
+
+            const icon = element.querySelector(".requirement-icon");
+
+            if (valid) {
+                element.classList.add("valid");
+                icon.textContent = "✓";
+            } else {
+                element.classList.remove("valid");
+                icon.textContent = "✗";
+            }
+        }
+
+        function checkPassword() {
+
+            const value = password.value;
+
+            const hasLength = value.length >= 8;
+            const hasUppercase = /[A-Z]/.test(value);
+            const hasLowercase = /[a-z]/.test(value);
+            const hasNumber = /[0-9]/.test(value);
+            const hasSpecial = /[\W_]/.test(value);
+
+            updateRequirement(lengthRequirement, hasLength);
+            updateRequirement(uppercaseRequirement, hasUppercase);
+            updateRequirement(lowercaseRequirement, hasLowercase);
+            updateRequirement(numberRequirement, hasNumber);
+            updateRequirement(specialRequirement, hasSpecial);
+
+            if (
+                hasLength &&
+                hasUppercase &&
+                hasLowercase &&
+                hasNumber &&
+                hasSpecial
+            ) {
+
+                updatePasswordButton.disabled = false;
+
+            } else {
+
+                updatePasswordButton.disabled = true;
+
+            }
+        }
+
+        password.addEventListener("input", checkPassword);
+
+        resetForm.addEventListener("submit", function(event) {
+
+            const value = password.value;
+
+            const valid =
+                value.length >= 8 &&
+                /[A-Z]/.test(value) &&
+                /[a-z]/.test(value) &&
+                /[0-9]/.test(value) &&
+                /[\W_]/.test(value);
+
+            if (!valid) {
+                event.preventDefault();
+            }
+
+        });
+
+        checkPassword();
+
+    </script>
+
+    <?php } ?>
 
 </body>
 
 </html>
-

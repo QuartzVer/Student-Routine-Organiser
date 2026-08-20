@@ -135,7 +135,7 @@ if (isset($_POST['edit_habit'])) {
 }
 
 /* =========================================
-   FETCH HABITS (with sorting)
+   FETCH HABITS (with sorting and search)
    ========================================= */
 $allowed_sort  = ['habit_name', 'target_frequency', 'completion_status', 'habit_date'];
 $allowed_order = ['ASC', 'DESC'];
@@ -148,8 +148,43 @@ if (!in_array($order, $allowed_order, true)) $order = 'DESC';
 
 $next_order = ($order === 'ASC') ? 'DESC' : 'ASC';
 
-$stmt = mysqli_prepare($con, "SELECT * FROM habits WHERE user_id = ? ORDER BY $sort $order");
-mysqli_stmt_bind_param($stmt, "i", $user_id);
+// Search keyword
+$keyword = trim($_GET['search'] ?? '');
+
+if ($keyword !== '') {
+
+    $like = "%" . $keyword . "%";
+
+    $stmt = mysqli_prepare(
+        $con,
+        "SELECT * FROM habits
+         WHERE user_id = ?
+         AND (
+             habit_name LIKE ?
+             OR target_frequency LIKE ?
+             OR notes LIKE ?
+         )
+         ORDER BY $sort $order"
+    );
+
+    mysqli_stmt_bind_param(
+        $stmt,
+        "isss",
+        $user_id,
+        $like,
+        $like,
+        $like
+    );
+} else {
+
+    $stmt = mysqli_prepare(
+        $con,
+        "SELECT * FROM habits WHERE user_id = ? ORDER BY $sort $order"
+    );
+
+    mysqli_stmt_bind_param($stmt, "i", $user_id);
+}
+
 mysqli_stmt_execute($stmt);
 $habits_result = mysqli_stmt_get_result($stmt);
 $habit_count = mysqli_num_rows($habits_result);
@@ -178,25 +213,70 @@ ob_start();
     <div class="card">
         <div class="card-body">
 
-            <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap" style="gap: 10px;">
+
                 <h4 class="card-title mb-0">
                     <i class="mdi mdi-checkbox-marked-circle-outline text-success"></i>
                     My Habits
                 </h4>
+
+                <form method="GET" action="habit.php" class="d-flex" style="margin: 0 15px; flex: 1; max-width: 1200px;">
+                    <input type="text"
+                        name="search"
+                        class="form-control form-control-sm mr-1"
+                        placeholder="Search by habit name, frequency, or notes..."
+                        value="<?php echo htmlspecialchars($keyword); ?>">
+
+                    <button type="submit"
+                        class="btn btn-sm btn-secondary"
+                        title="Search">
+                        <i class="mdi mdi-magnify"></i>
+                    </button>
+
+                    <?php if ($keyword !== ''): ?>
+
+                        <a href="habit.php"
+                            class="btn btn-sm btn-light ml-1"
+                            title="Clear search"
+                            style="display: inline-flex; align-items: center; justify-content: center;">
+                            <i class="mdi mdi-close"></i>
+                        </a>
+
+                    <?php endif; ?>
+
+                </form>
+
                 <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#addHabitModal">
                     <i class="mdi mdi-plus"></i> Add Habit
                 </button>
+
             </div>
 
             <?php if ($habit_count === 0): ?>
-                <p class="text-muted text-center py-4">No habits yet. Click "Add Habit" to create your first one.</p>
+
+                <?php if ($keyword !== ''): ?>
+
+                    <p class="text-muted text-center py-4">
+                        No habits match "<?php echo htmlspecialchars($keyword); ?>".
+                    </p>
+
+                <?php else: ?>
+
+                    <p class="text-muted text-center py-4">
+                        No habits yet. Click "Add Habit" to create your first one.
+                    </p>
+
+                <?php endif; ?>
+
             <?php else: ?>
+
                 <div class="table-responsive">
                     <table class="table table-striped">
                         <thead>
                             <tr>
+
                                 <th>
-                                    <a href="?sort=habit_name&order=<?php echo $sort === 'habit_name' ? $next_order : 'ASC'; ?>"
+                                    <a href="?sort=habit_name&order=<?php echo $sort === 'habit_name' ? $next_order : 'ASC'; ?>&search=<?php echo urlencode($keyword); ?>"
                                         style="text-decoration: none; color: inherit;">
                                         Habit Name
                                         <i class="mdi mdi-sort" style="color: white;"></i>
@@ -204,7 +284,7 @@ ob_start();
                                 </th>
 
                                 <th>
-                                    <a href="?sort=target_frequency&order=<?php echo $sort === 'target_frequency' ? $next_order : 'ASC'; ?>"
+                                    <a href="?sort=target_frequency&order=<?php echo $sort === 'target_frequency' ? $next_order : 'ASC'; ?>&search=<?php echo urlencode($keyword); ?>"
                                         style="text-decoration: none; color: inherit;">
                                         Target Frequency
                                         <i class="mdi mdi-sort" style="color: white;"></i>
@@ -212,7 +292,7 @@ ob_start();
                                 </th>
 
                                 <th>
-                                    <a href="?sort=completion_status&order=<?php echo $sort === 'completion_status' ? $next_order : 'ASC'; ?>"
+                                    <a href="?sort=completion_status&order=<?php echo $sort === 'completion_status' ? $next_order : 'ASC'; ?>&search=<?php echo urlencode($keyword); ?>"
                                         style="text-decoration: none; color: inherit;">
                                         Status
                                         <i class="mdi mdi-sort" style="color: white;"></i>
@@ -220,7 +300,7 @@ ob_start();
                                 </th>
 
                                 <th>
-                                    <a href="?sort=habit_date&order=<?php echo $sort === 'habit_date' ? $next_order : 'ASC'; ?>"
+                                    <a href="?sort=habit_date&order=<?php echo $sort === 'habit_date' ? $next_order : 'ASC'; ?>&search=<?php echo urlencode($keyword); ?>"
                                         style="text-decoration: none; color: inherit;">
                                         Date
                                         <i class="mdi mdi-sort" style="color: white;"></i>
@@ -229,87 +309,212 @@ ob_start();
 
                                 <th>Notes</th>
                                 <th class="actions-column">Actions</th>
+
                             </tr>
                         </thead>
+
                         <tbody>
+
                             <?php while ($habit = mysqli_fetch_assoc($habits_result)): ?>
+
                                 <tr>
+
                                     <td><?php echo htmlspecialchars($habit['habit_name']); ?></td>
+
                                     <td><?php echo htmlspecialchars($habit['target_frequency']); ?></td>
+
                                     <td>
+
                                         <?php if ($habit['completion_status'] === 'Completed'): ?>
+
                                             <label class="badge badge-success">Completed</label>
+
                                         <?php else: ?>
+
                                             <label class="badge badge-warning">Pending</label>
+
                                         <?php endif; ?>
+
                                     </td>
+
                                     <td><?php echo htmlspecialchars($habit['habit_date']); ?></td>
-                                    <td><?php echo htmlspecialchars($habit['notes'] !== null && $habit['notes'] !== '' ? $habit['notes'] : '-'); ?></td>
+
                                     <td>
-                                        <button type="button" class="btn btn-inverse-warning btn-icon" data-toggle="modal" data-target="#editHabitModal<?php echo $habit['habit_id']; ?>">
+                                        <?php echo htmlspecialchars(
+                                            $habit['notes'] !== null && $habit['notes'] !== ''
+                                                ? $habit['notes']
+                                                : '-'
+                                        ); ?>
+                                    </td>
+
+                                    <td>
+
+                                        <button type="button"
+                                            class="btn btn-inverse-warning btn-icon"
+                                            data-toggle="modal"
+                                            data-target="#editHabitModal<?php echo $habit['habit_id']; ?>">
+
                                             <i class="mdi mdi-pencil"></i>
+
                                         </button>
+
                                         <a class="btn btn-inverse-danger btn-icon"
                                             style="display: inline-flex; align-items: center; justify-content: center;"
                                             href="habit.php?delete=<?php echo $habit['habit_id']; ?>&token=<?php echo urlencode($_SESSION['csrf_token']); ?>"
                                             onclick="return confirm('Delete this habit record?');">
+
                                             <i class="mdi mdi-delete"></i>
+
                                         </a>
+
                                     </td>
+
                                 </tr>
 
                                 <!-- Edit modal for habit #<?php echo $habit['habit_id']; ?> -->
-                                <div class="modal fade" id="editHabitModal<?php echo $habit['habit_id']; ?>" tabindex="-1" role="dialog" aria-hidden="true">
+
+                                <div class="modal fade"
+                                    id="editHabitModal<?php echo $habit['habit_id']; ?>"
+                                    tabindex="-1"
+                                    role="dialog"
+                                    aria-hidden="true">
+
                                     <div class="modal-dialog" role="document">
+
                                         <div class="modal-content">
+
                                             <form method="POST" action="habit.php">
+
                                                 <div class="modal-header">
-                                                    <h5 class="modal-title">Edit Habit</h5>
-                                                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+
+                                                    <h5 class="modal-title">
+                                                        Edit Habit
+                                                    </h5>
+
+                                                    <button type="button"
+                                                        class="close"
+                                                        data-dismiss="modal"
+                                                        aria-label="Close">
+
+                                                        <span aria-hidden="true">&times;</span>
+
+                                                    </button>
+
                                                 </div>
+
                                                 <div class="modal-body">
-                                                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
-                                                    <input type="hidden" name="habit_id" value="<?php echo $habit['habit_id']; ?>">
+
+                                                    <input type="hidden"
+                                                        name="csrf_token"
+                                                        value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
+
+                                                    <input type="hidden"
+                                                        name="habit_id"
+                                                        value="<?php echo $habit['habit_id']; ?>">
 
                                                     <div class="form-group">
+
                                                         <label>Habit Name</label>
-                                                        <input type="text" name="habit_name" class="form-control" maxlength="100" required
+
+                                                        <input type="text"
+                                                            name="habit_name"
+                                                            class="form-control"
+                                                            maxlength="100"
+                                                            required
                                                             value="<?php echo htmlspecialchars($habit['habit_name']); ?>">
+
                                                     </div>
+
                                                     <div class="form-group">
+
                                                         <label>Target Frequency</label>
-                                                        <input type="text" name="target_frequency" class="form-control" maxlength="50" required
+
+                                                        <input type="text"
+                                                            name="target_frequency"
+                                                            class="form-control"
+                                                            maxlength="50"
+                                                            required
                                                             value="<?php echo htmlspecialchars($habit['target_frequency']); ?>">
+
                                                     </div>
+
                                                     <div class="form-group">
+
                                                         <label>Completion Status</label>
-                                                        <select name="completion_status" class="form-control">
-                                                            <option value="Pending" <?php echo $habit['completion_status'] === 'Pending' ? 'selected' : ''; ?>>Pending</option>
-                                                            <option value="Completed" <?php echo $habit['completion_status'] === 'Completed' ? 'selected' : ''; ?>>Completed</option>
+
+                                                        <select name="completion_status"
+                                                            class="form-control">
+
+                                                            <option value="Pending"
+                                                                <?php echo $habit['completion_status'] === 'Pending' ? 'selected' : ''; ?>>
+                                                                Pending
+                                                            </option>
+
+                                                            <option value="Completed"
+                                                                <?php echo $habit['completion_status'] === 'Completed' ? 'selected' : ''; ?>>
+                                                                Completed
+                                                            </option>
+
                                                         </select>
+
                                                     </div>
+
                                                     <div class="form-group">
+
                                                         <label>Date</label>
-                                                        <input type="date" name="habit_date" class="form-control" required
+
+                                                        <input type="date"
+                                                            name="habit_date"
+                                                            class="form-control"
+                                                            required
                                                             value="<?php echo htmlspecialchars($habit['habit_date']); ?>">
+
                                                     </div>
+
                                                     <div class="form-group">
+
                                                         <label>Notes (optional)</label>
-                                                        <textarea name="notes" class="form-control" rows="2" maxlength="255"><?php echo htmlspecialchars($habit['notes'] ?? ''); ?></textarea>
+
+                                                        <textarea name="notes"
+                                                            class="form-control"
+                                                            rows="2"
+                                                            maxlength="255"><?php echo htmlspecialchars($habit['notes'] ?? ''); ?></textarea>
+
                                                     </div>
+
                                                 </div>
+
                                                 <div class="modal-footer">
-                                                    <button type="submit" name="edit_habit" class="btn btn-primary">Save Changes</button>
-                                                    <button type="button" class="btn btn-light" data-dismiss="modal">Cancel</button>
+
+                                                    <button type="submit"
+                                                        name="edit_habit"
+                                                        class="btn btn-primary">
+                                                        Save Changes
+                                                    </button>
+
+                                                    <button type="button"
+                                                        class="btn btn-light"
+                                                        data-dismiss="modal">
+                                                        Cancel
+                                                    </button>
+
                                                 </div>
+
                                             </form>
+
                                         </div>
+
                                     </div>
+
                                 </div>
+
                             <?php endwhile; ?>
+
                         </tbody>
+
                     </table>
                 </div>
+
             <?php endif; ?>
 
         </div>
@@ -317,48 +522,135 @@ ob_start();
 </div>
 
 <!-- Add Habit Modal -->
-<div class="modal fade" id="addHabitModal" tabindex="-1" role="dialog" aria-hidden="true">
+
+<div class="modal fade"
+    id="addHabitModal"
+    tabindex="-1"
+    role="dialog"
+    aria-hidden="true">
+
     <div class="modal-dialog" role="document">
+
         <div class="modal-content">
+
             <form method="POST" action="habit.php">
+
                 <div class="modal-header">
-                    <h5 class="modal-title">Add New Habit</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+
+                    <h5 class="modal-title">
+                        Add New Habit
+                    </h5>
+
+                    <button type="button"
+                        class="close"
+                        data-dismiss="modal"
+                        aria-label="Close">
+
+                        <span aria-hidden="true">&times;</span>
+
+                    </button>
+
                 </div>
+
                 <div class="modal-body">
-                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
+
+                    <input type="hidden"
+                        name="csrf_token"
+                        value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
 
                     <div class="form-group">
+
                         <label>Habit Name</label>
-                        <input type="text" name="habit_name" class="form-control" maxlength="100" required placeholder="e.g. Drink 2L water">
+
+                        <input type="text"
+                            name="habit_name"
+                            class="form-control"
+                            maxlength="100"
+                            required
+                            placeholder="e.g. Drink 2L water">
+
                     </div>
+
                     <div class="form-group">
+
                         <label>Target Frequency</label>
-                        <input type="text" name="target_frequency" class="form-control" maxlength="50" required placeholder="e.g. Daily, 3x/week">
+
+                        <input type="text"
+                            name="target_frequency"
+                            class="form-control"
+                            maxlength="50"
+                            required
+                            placeholder="e.g. Daily, 3x/week">
+
                     </div>
+
                     <div class="form-group">
+
                         <label>Completion Status</label>
-                        <select name="completion_status" class="form-control">
-                            <option value="Pending">Pending</option>
-                            <option value="Completed">Completed</option>
+
+                        <select name="completion_status"
+                            class="form-control">
+
+                            <option value="Pending">
+                                Pending
+                            </option>
+
+                            <option value="Completed">
+                                Completed
+                            </option>
+
                         </select>
+
                     </div>
+
                     <div class="form-group">
+
                         <label>Date</label>
-                        <input type="date" name="habit_date" class="form-control" required value="<?php echo date('Y-m-d'); ?>">
+
+                        <input type="date"
+                            name="habit_date"
+                            class="form-control"
+                            required
+                            value="<?php echo date('Y-m-d'); ?>">
+
                     </div>
+
                     <div class="form-group">
+
                         <label>Notes (optional)</label>
-                        <textarea name="notes" class="form-control" rows="2" maxlength="255"></textarea>
+
+                        <textarea name="notes"
+                            class="form-control"
+                            rows="2"
+                            maxlength="255"
+                            placeholder="e.g. Remember to do this after breakfast"></textarea>
+
                     </div>
+
                 </div>
+
                 <div class="modal-footer">
-                    <button type="submit" name="add_habit" class="btn btn-primary">Save Habit</button>
-                    <button type="button" class="btn btn-light" data-dismiss="modal">Cancel</button>
+
+                    <button type="submit"
+                        name="add_habit"
+                        class="btn btn-primary">
+                        Save Habit
+                    </button>
+
+                    <button type="button"
+                        class="btn btn-light"
+                        data-dismiss="modal">
+                        Cancel
+                    </button>
+
                 </div>
+
             </form>
+
         </div>
+
     </div>
+
 </div>
 
 <?php

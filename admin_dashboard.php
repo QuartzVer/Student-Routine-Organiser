@@ -90,13 +90,15 @@ foreach ($moduleTables as $table) {
 }
 
 $selectedUser = null;
+$selectedUserCounts = [];
+$selectedUserTotalRecords = 0;
 
 if (isset($_GET['view_user'])) {
     $viewUserId = (int)$_GET['view_user'];
 
     $stmt = mysqli_prepare(
         $con,
-        "SELECT id, role, username, full_name, email, reg_date
+        "SELECT id, role, username, full_name, email, reg_date, last_login
          FROM users
          WHERE id = ?
          LIMIT 1"
@@ -116,6 +118,33 @@ if (isset($_GET['view_user'])) {
         $selectedUser = mysqli_fetch_assoc($result);
 
         mysqli_stmt_close($stmt);
+    }
+
+    if ($selectedUser) {
+        foreach ($moduleTables as $table) {
+            if (tableExists($con, $table)) {
+                $countStmt = mysqli_prepare(
+                    $con,
+                    "SELECT COUNT(*) AS total FROM `$table` WHERE user_id = ?"
+                );
+
+                if ($countStmt) {
+                    mysqli_stmt_bind_param($countStmt, "i", $viewUserId);
+                    mysqli_stmt_execute($countStmt);
+                    $countResult = mysqli_stmt_get_result($countStmt);
+                    $countRow = mysqli_fetch_assoc($countResult);
+                    $selectedUserCounts[$table] = (int)$countRow['total'];
+                    mysqli_stmt_close($countStmt);
+                } else {
+                    $selectedUserCounts[$table] = 0;
+                }
+            } else {
+                // Money and Habit tables may not exist yet in the current database.
+                $selectedUserCounts[$table] = 0;
+            }
+
+            $selectedUserTotalRecords += $selectedUserCounts[$table];
+        }
     }
 }
 
@@ -425,111 +454,153 @@ ob_start();
 
             <div class="card-body">
 
-                <div class="d-flex justify-content-between align-items-center mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap">
 
                     <h4 class="text-white mb-0">
-
                         <i class="mdi mdi-account-card-details text-info"></i>
                         View User Details
-
                     </h4>
 
                     <a
                         href="admin_dashboard.php"
-                        class="btn btn-secondary btn-sm"
+                        class="btn btn-secondary btn-sm mt-2 mt-md-0"
                     >
                         Close
                     </a>
 
                 </div>
 
-                <div class="row">
+                <!-- User information is shown once -->
+                <div class="row mb-4">
 
-                    <div class="col-md-6">
-
-                        <p class="text-muted mb-1">
-                            Username
+                    <div class="col-md-3 mb-3">
+                        <p class="text-muted mb-1">Username</p>
+                        <p class="text-white mb-0">
+                            <?php echo htmlspecialchars($selectedUser['username']); ?>
                         </p>
-
-                        <p class="text-white">
-                            <?php
-                            echo htmlspecialchars(
-                                $selectedUser['username']
-                            );
-                            ?>
-                        </p>
-
                     </div>
 
-                    <div class="col-md-6">
-
-                        <p class="text-muted mb-1">
-                            Full Name
+                    <div class="col-md-3 mb-3">
+                        <p class="text-muted mb-1">Full Name</p>
+                        <p class="text-white mb-0">
+                            <?php echo htmlspecialchars($selectedUser['full_name']); ?>
                         </p>
-
-                        <p class="text-white">
-                            <?php
-                            echo htmlspecialchars(
-                                $selectedUser['full_name']
-                            );
-                            ?>
-                        </p>
-
                     </div>
 
-                    <div class="col-md-6">
-
-                        <p class="text-muted mb-1">
-                            Email
+                    <div class="col-md-3 mb-3">
+                        <p class="text-muted mb-1">Email</p>
+                        <p class="text-white mb-0 text-break">
+                            <?php echo htmlspecialchars($selectedUser['email']); ?>
                         </p>
-
-                        <p class="text-white">
-                            <?php
-                            echo htmlspecialchars(
-                                $selectedUser['email']
-                            );
-                            ?>
-                        </p>
-
                     </div>
 
-                    <div class="col-md-6">
-
-                        <p class="text-muted mb-1">
-                            Role
+                    <div class="col-md-3 mb-3">
+                        <p class="text-muted mb-1">Role</p>
+                        <p class="text-white mb-0">
+                            <?php echo htmlspecialchars(ucfirst($selectedUser['role'])); ?>
                         </p>
-
-                        <p class="text-white">
-                            <?php
-                            echo htmlspecialchars(
-                                ucfirst($selectedUser['role'])
-                            );
-                            ?>
-                        </p>
-
                     </div>
 
-                    <div class="col-md-6">
-
-                        <p class="text-muted mb-1">
-                            Registration Date
-                        </p>
-
-                        <p class="text-white">
-
+                    <div class="col-md-6 mb-3">
+                        <p class="text-muted mb-1">Registration Date</p>
+                        <p class="text-white mb-0">
                             <?php
-
                             echo date(
                                 'd M Y, h:i A',
-                                strtotime(
-                                    $selectedUser['reg_date']
-                                )
+                                strtotime($selectedUser['reg_date'])
                             );
-
                             ?>
-
                         </p>
+                    </div>
 
+                    <div class="col-md-6 mb-3">
+                        <p class="text-muted mb-1">Last Login</p>
+                        <p class="text-white mb-0">
+                            <?php if (!empty($selectedUser['last_login'])): ?>
+                                <?php
+                                echo date(
+                                    'd M Y, h:i A',
+                                    strtotime($selectedUser['last_login'])
+                                );
+                                ?>
+                            <?php else: ?>
+                                Never logged in
+                            <?php endif; ?>
+                        </p>
+                    </div>
+
+                </div>
+
+                <!-- Overall record count -->
+                <div class="card bg-dark mb-4">
+                    <div class="card-body py-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <p class="text-muted mb-1">Total Records</p>
+                                <h3 class="text-white mb-0">
+                                    <?php echo $selectedUserTotalRecords; ?>
+                                </h3>
+                            </div>
+                            <i class="mdi mdi-database-check text-info" style="font-size: 36px;"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Four module record counts -->
+                <h5 class="text-white mb-3">Module Records</h5>
+
+                <div class="row">
+
+                    <div class="col-md-3 col-sm-6 mb-3">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <i class="mdi mdi-run text-success" style="font-size: 32px;"></i>
+                                <p class="text-muted mb-1 mt-2">Exercise</p>
+                                <h3 class="text-white mb-0">
+                                    <?php echo $selectedUserCounts['exercise'] ?? 0; ?>
+                                </h3>
+                                <small class="text-muted">records</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-3 col-sm-6 mb-3">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <i class="mdi mdi-book-open-page-variant text-danger" style="font-size: 32px;"></i>
+                                <p class="text-muted mb-1 mt-2">Diary</p>
+                                <h3 class="text-white mb-0">
+                                    <?php echo $selectedUserCounts['diary'] ?? 0; ?>
+                                </h3>
+                                <small class="text-muted">records</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-3 col-sm-6 mb-3">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <i class="mdi mdi-cash-multiple text-warning" style="font-size: 32px;"></i>
+                                <p class="text-muted mb-1 mt-2">Money</p>
+                                <h3 class="text-white mb-0">
+                                    <?php echo $selectedUserCounts['money'] ?? 0; ?>
+                                </h3>
+                                <small class="text-muted">records</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-3 col-sm-6 mb-3">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <i class="mdi mdi-check-circle-outline text-info" style="font-size: 32px;"></i>
+                                <p class="text-muted mb-1 mt-2">Habit</p>
+                                <h3 class="text-white mb-0">
+                                    <?php echo $selectedUserCounts['habit'] ?? 0; ?>
+                                </h3>
+                                <small class="text-muted">records</small>
+                            </div>
+                        </div>
                     </div>
 
                 </div>

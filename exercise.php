@@ -8,13 +8,53 @@ require('database.php');
 $message = "";
 if (isset($_GET['success'])) {
     if ($_GET['success'] == 'added') {
-        $message = "<div class='alert alert-success'>Exercise added successfully.</div>";
+        $message = "
+            <div class='alert alert-success' style='position: relative;'>
+                Exercise added successfully.
+                <button
+                    type='button'
+                    class='close-message'
+                    onclick='this.parentElement.style.display=\"none\"'
+                    aria-label='Close'>
+                    &times;
+                </button>
+            </div>";
     } elseif ($_GET['success'] == 'updated') {
-        $message = "<div class='alert alert-success'>Exercise updated successfully.</div>";
+        $message = "
+            <div class='alert alert-success' style='position: relative;'>
+                Exercise updated successfully.
+                <button
+                    type='button'
+                    class='close-message'
+                    onclick='this.parentElement.style.display=\"none\"'
+                    aria-label='Close'>
+                    &times;
+                </button>
+            </div>";
     } elseif ($_GET['success'] == 'deleted') {
-        $message = "<div class='alert alert-success'>Exercise deleted successfully.</div>";
+        $message = "
+            <div class='alert alert-success' style='position: relative;'>
+                Exercise deleted successfully.
+                <button
+                    type='button'
+                    class='close-message'
+                    onclick='this.parentElement.style.display=\"none\"'
+                    aria-label='Close'>
+                    &times;
+                </button>
+            </div>";
     } elseif ($_GET['success'] == 'goal_set') {
-        $message = "<div class='alert alert-success'>Goal updated successfully.</div>";
+        $message = "
+            <div class='alert alert-success' style='position: relative;'>
+                Goal updated successfully.
+                <button
+                    type='button'
+                    class='close-message'
+                    onclick='this.parentElement.style.display=\"none\"'
+                    aria-label='Close'>
+                    &times;
+                </button>
+            </div>";
     }
 }
 
@@ -141,6 +181,7 @@ if (isset($_POST['update_exercise'])) {
         }
     }
 }
+
 //for editing record
 $edit_record = null;
 if (isset($_GET['edit'])) {
@@ -170,7 +211,7 @@ if (isset($_POST['set_goal'])) {
         $message = "<div class='alert alert-danger'>Goal target must be greater than 0.</div>";
     } else {
 
-        $check_query = "SELECT goal_id FROM exercise_goals WHERE user_id = '$user_id'";
+        $check_query = "SELECT exercise_goal_id FROM exercise_goals WHERE user_id = '$user_id'";
         $check_result = mysqli_query($con, $check_query);
 
         if ($check_result && mysqli_num_rows($check_result) > 0) {
@@ -206,7 +247,7 @@ mysqli_query($con, "
 ");
 
 
-//get record based on current user with sorting
+//get record based on current user with sorting and search
 $allowed_sort = [
     'exercise_date',
     'activity_type',
@@ -221,6 +262,9 @@ $allowed_order = ['ASC', 'DESC'];
 $sort = $_GET['sort'] ?? 'exercise_date';
 $order = strtoupper($_GET['order'] ?? 'DESC');
 
+// Search keyword
+$keyword = trim($_GET['search'] ?? '');
+
 // Prevent invalid column/order from being used
 if (!in_array($sort, $allowed_sort, true)) {
     $sort = 'exercise_date';
@@ -233,12 +277,32 @@ if (!in_array($order, $allowed_order, true)) {
 // Clicking the same column switches ASC/DESC
 $next_order = ($order === 'ASC') ? 'DESC' : 'ASC';
 
-$query = "SELECT *
-          FROM exercise
-          WHERE user_id = '$user_id'
-          ORDER BY $sort $order, exercise_id DESC";
+
+// Search Activity Name, Status and Intensity
+if ($keyword !== '') {
+
+    $search = mysqli_real_escape_string($con, $keyword);
+
+    $query = "SELECT *
+              FROM exercise
+              WHERE user_id = '$user_id'
+              AND (
+                  activity_type LIKE '%$search%'
+                  OR activity_status LIKE '%$search%'
+                  OR intensity_level LIKE '%$search%'
+              )
+              ORDER BY $sort $order, exercise_id DESC";
+
+} else {
+
+    $query = "SELECT *
+              FROM exercise
+              WHERE user_id = '$user_id'
+              ORDER BY $sort $order, exercise_id DESC";
+}
 
 $result = mysqli_query($con, $query);
+
 
 //exercise status overview
 $status_counts = ['Scheduled' => 0, 'Completed' => 0, 'Missed' => 0];
@@ -592,9 +656,45 @@ if ($goal_result && mysqli_num_rows($goal_result) > 0) {
 
             <div class="card-body">
 
-                <h4 class="text-white mb-4">
-                    Exercise Records
-                </h4>
+                <!--search-->
+                <div class="d-flex align-items-center justify-content-between mb-4">
+
+                    <h4 class="text-white mb-0">
+                        Exercise Records
+                    </h4>
+
+                    <form action="exercise.php"
+                        method="GET"
+                        class="d-flex align-items-center"
+                        style="margin: 0;">
+
+                        <input type="text"
+                            name="search"
+                            class="form-control"
+                            style="width: 450px; height: 35px;"
+                            placeholder="Search activity, status, or intensity..."
+                            value="<?php echo htmlspecialchars($keyword); ?>">
+
+                        <button type="submit"
+                            class="btn btn-warning ml-2">
+                            <i class="mdi mdi-magnify"></i>
+                            Search
+                        </button>
+
+                        <?php if ($keyword !== ''): ?>
+
+                            <a href="exercise.php"
+                                class="btn btn-secondary ml-2 d-flex align-items-center justify-content-center"
+                                style="height: 38px;">
+                                <i class="mdi mdi-close"></i>
+                                <span class="ml-1">Clear</span>
+                            </a>
+
+                        <?php endif; ?>
+
+                    </form>
+
+                </div>
 
                 <div class="table-responsive">
 
@@ -605,7 +705,7 @@ if ($goal_result && mysqli_num_rows($goal_result) > 0) {
 
         <th>
             Exercise Date
-            <a href="?sort=exercise_date&order=<?php echo $next_order; ?>"
+            <a href="?sort=exercise_date&order=<?php echo $next_order; ?>&search=<?php echo urlencode($keyword); ?>"
                style="text-decoration: none;">
                 <i class="mdi mdi-sort" style="color: white;"></i>
             </a>
@@ -613,7 +713,7 @@ if ($goal_result && mysqli_num_rows($goal_result) > 0) {
 
         <th>
             Activity
-            <a href="?sort=activity_type&order=<?php echo $next_order; ?>"
+            <a href="?sort=activity_type&order=<?php echo $next_order; ?>&search=<?php echo urlencode($keyword); ?>"
                style="text-decoration: none;">
                 <i class="mdi mdi-sort" style="color: white;"></i>
             </a>
@@ -621,7 +721,7 @@ if ($goal_result && mysqli_num_rows($goal_result) > 0) {
 
         <th>
             Duration
-            <a href="?sort=duration&order=<?php echo $next_order; ?>"
+            <a href="?sort=duration&order=<?php echo $next_order; ?>&search=<?php echo urlencode($keyword); ?>"
                style="text-decoration: none;">
                 <i class="mdi mdi-sort" style="color: white;"></i>
             </a>
@@ -629,7 +729,7 @@ if ($goal_result && mysqli_num_rows($goal_result) > 0) {
 
         <th>
             Calories
-            <a href="?sort=calories_burned&order=<?php echo $next_order; ?>"
+            <a href="?sort=calories_burned&order=<?php echo $next_order; ?>&search=<?php echo urlencode($keyword); ?>"
                style="text-decoration: none;">
                 <i class="mdi mdi-sort" style="color: white;"></i>
             </a>
@@ -637,7 +737,7 @@ if ($goal_result && mysqli_num_rows($goal_result) > 0) {
 
         <th>
             Intensity
-            <a href="?sort=intensity_level&order=<?php echo $next_order; ?>"
+            <a href="?sort=intensity_level&order=<?php echo $next_order; ?>&search=<?php echo urlencode($keyword); ?>"
                style="text-decoration: none;">
                 <i class="mdi mdi-sort" style="color: white;"></i>
             </a>
@@ -645,7 +745,7 @@ if ($goal_result && mysqli_num_rows($goal_result) > 0) {
 
         <th>
             Status
-            <a href="?sort=activity_status&order=<?php echo $next_order; ?>"
+            <a href="?sort=activity_status&order=<?php echo $next_order; ?>&search=<?php echo urlencode($keyword); ?>"
                style="text-decoration: none;">
                 <i class="mdi mdi-sort" style="color: white;"></i>
             </a>
@@ -736,7 +836,18 @@ if ($goal_result && mysqli_num_rows($goal_result) > 0) {
                                 <tr>
                                     <td colspan="7"
                                         class="text-center text-muted">
-                                        No exercise records found.
+
+                                        <?php if ($keyword !== ''): ?>
+
+                                            No exercise records match
+                                            "<?php echo htmlspecialchars($keyword); ?>".
+
+                                        <?php else: ?>
+
+                                            No exercise records found.
+
+                                        <?php endif; ?>
+
                                     </td>
                                 </tr>
 
@@ -802,6 +913,29 @@ if ($goal_result && mysqli_num_rows($goal_result) > 0) {
 $pageContent = ob_get_clean();
 include "layout.php";
 ?>
+
+<style>
+    .close-message {
+        position: absolute;
+        top: 50%;
+        right: 10px;
+        transform: translateY(-50%);
+        width: 25px;
+        height: 25px;
+        border: none;
+        background: transparent;
+        font-size: 24px;
+        line-height: 25px;
+        text-align: center;
+        cursor: pointer;
+        padding: 0;
+        opacity: 0.7;
+    }
+
+    .close-message:hover {
+        opacity: 1;
+    }
+</style>
 
 <script>
     document.addEventListener("DOMContentLoaded", function() {

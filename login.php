@@ -183,7 +183,7 @@ if (isset($_POST['username'])) {
                                     <input type="text"
                                         name="username"
                                         class="form-control p_input"
-                                        value="<?php echo $remembered_username; ?>"
+                                        value="<?php echo htmlspecialchars($remembered_username); ?>"
                                         required>
                                 </div>
 
