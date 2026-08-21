@@ -65,8 +65,8 @@ if (isset($_POST['add_diary'])) {
 
             if (mysqli_stmt_execute($stmt)) {
 
-               header("Location: diary.php");
-               exit();
+               $message = "Journal entry saved successfully.";
+                $message_type = "success";
 
             } else {
 
@@ -140,8 +140,8 @@ if (isset($_POST['update_diary'])) {
 
             if (mysqli_stmt_execute($stmt)) {
 
-                header("Location: diary.php");
-                exit();
+                $message = "Journal entry updated successfully.";
+                $message_type = "success";
 
             } else {
 
@@ -183,8 +183,8 @@ if (isset($_GET['delete'])) {
 
             if (mysqli_stmt_execute($stmt)) {
 
-                header("Location: diary.php");
-                exit();
+               $message = "Journal entry deleted successfully.";
+                $message_type = "success";
 
             } else {
 
