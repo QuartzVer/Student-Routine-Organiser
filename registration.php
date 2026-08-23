@@ -41,7 +41,7 @@ if (isset($_POST['submit'])) {
 
     $role = "student"; 
  
-    // Password requirements
+    //password requirements
     $password_error = ""; 
  
     if (strlen($password) < 8) { 
@@ -172,12 +172,10 @@ if (isset($_POST['submit'])) {
             background-position: center;
         }
 
-        /* Form spacing */
         .registration-form .form-group {
             margin-bottom: 15px;
         }
 
-        /* Password requirements */
         .password-requirements {
             margin-top: 5px;
             line-height: 1.5;
@@ -206,9 +204,7 @@ if (isset($_POST['submit'])) {
             margin-bottom: 0 !important;
         }
 
-        /* =================================
-           MESSAGE OVERLAY
-        ================================= */
+     
 
         .registration-overlay {
             position: fixed;
@@ -220,9 +216,6 @@ if (isset($_POST['submit'])) {
             z-index: 9998;
         }
 
-        /* =================================
-           MESSAGE BOX
-        ================================= */
 
         .registration-message {
             position: fixed;

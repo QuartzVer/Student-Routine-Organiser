@@ -248,9 +248,7 @@ if (isset($_GET['edit'])) {
 }
 
 
-/* ─────────────────────────────────────────────
-   Search and Sorting
-   ───────────────────────────────────────────── */
+/*search and sorting*/
 
 $allowed_sort = [
     'mood_status',
@@ -283,7 +281,7 @@ if (!in_array($order, $allowed_order, true)) {
 $next_order = ($order === 'ASC') ? 'DESC' : 'ASC';
 
 
-/* Search Mood and Title */
+/*search mood and title */
 
 if ($keyword !== '') {
 
@@ -408,9 +406,8 @@ ob_start();
 }
 
 
-/* ─────────────────────────────────────────────
-   Diary Search
-   ───────────────────────────────────────────── */
+
+
 
 .diary-header-search {
     display: flex;

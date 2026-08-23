@@ -1,10 +1,7 @@
 <?php
 session_start();
 
-/*
-Session timeout
-30 minutes = 1800 seconds
-*/
+/*1800 seconds is 30 min*/
 $timeout_duration = 1800;
 
 /* Check login */

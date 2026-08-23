@@ -6,9 +6,7 @@ $reset_link = "";
 $show_reset_form = false;
 $token = "";
 
-/* =========================================
-   RESET PASSWORD USING TOKEN
-   ========================================= */
+/*RESET PASSWORD USING TOKEN*/
 
 if (isset($_GET['token'])) {
 
@@ -53,9 +51,7 @@ if (isset($_GET['token'])) {
 }
 
 
-/* =========================================
-   UPDATE PASSWORD
-   ========================================= */
+/*UPDATE PASSWORD */
 
 if (isset($_POST['reset_password'])) {
 
@@ -180,9 +176,7 @@ if (isset($_POST['reset_password'])) {
 }
 
 
-/* =========================================
-   GENERATE RESET TOKEN
-   ========================================= */
+/*GENERATE RESET TOKEN*/
 
 if (isset($_POST['send_reset'])) {
 
@@ -359,9 +353,7 @@ if (isset($_POST['send_reset'])) {
 
                             <?php if ($show_reset_form) { ?>
 
-                                <!-- ==========================
-                                 RESET PASSWORD FORM
-                                 ========================== -->
+                                <!-- RESET PASSWORD FORM -->
 
                                 <h3 class="card-title mb-3">
                                     Reset Password
@@ -459,9 +451,7 @@ if (isset($_POST['send_reset'])) {
 
                             <?php } else { ?>
 
-                                <!-- ==========================
-                                 FORGOT PASSWORD FORM
-                                 ========================== -->
+                                <!--FORGOT PASSWORD FORM-->
 
                                 <h3 class="card-title mb-3">
                                     Forgot Password

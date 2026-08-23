@@ -13,9 +13,7 @@ if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 
-/* =========================================
-   DELETE HABIT
-   ========================================= */
+/*DELETE HABIT*/
 if (isset($_GET['delete'])) {
 
     $delete_id = (int) $_GET['delete'];
@@ -33,9 +31,7 @@ if (isset($_GET['delete'])) {
     }
 }
 
-/* =========================================
-   ADD HABIT
-   ========================================= */
+/*ADD HABIT*/
 if (isset($_POST['add_habit'])) {
 
     if (!hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'] ?? '')) {
@@ -82,9 +78,7 @@ if (isset($_POST['add_habit'])) {
     }
 }
 
-/* =========================================
-   EDIT HABIT
-   ========================================= */
+/*EDIT HABIT*/
 if (isset($_POST['edit_habit'])) {
 
     if (!hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'] ?? '')) {

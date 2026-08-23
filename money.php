@@ -1,8 +1,7 @@
     <?php
-    // money.php
     require('auth.php');
 
-    // 1. SECURE PDO DATABASE CONNECTION
+    // DATABASE CONNECTION
     $host = 'localhost';
     $db_name = 'student_routine';
     $db_user = 'root';
@@ -201,7 +200,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
-        /* ========================= MONEY TRACKER DARK THEME ========================= */
+        /* MONEY TRACKER DARK THEME  */
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
         :root {
@@ -672,7 +671,7 @@
             margin-top: 10px;
         }
 
-        /* ========================= RESPONSIVE ========================= */
+        /*  RESPONSIVE  */
 @media (max-width: 1200px) {
     .summary-grid {
         grid-template-columns: repeat(2, 1fr);
@@ -1131,10 +1130,9 @@
                         <div class="progress-bar" role="progressbar" style="width: <?php echo min(100, ($goal_amount > 0 ? ($saved_this_month / $goal_amount) * 100 : 0)); ?>%;"></div>
                     </div>
 
-                    <!-- PROFESSIONAL LOCKED GOAL UI -->
+                    <!-- LOCKED GOAL -->
                     <?php if ($filter_label != "All Time"): ?>
                         <?php if ($goal_amount > 0): ?>
-                            <!-- Goal is LOCKED. Show Change Button only. -->
                             <div class="text-center mt-2">
                                 <button type="button" class="btn btn-warning" style="padding: 8px 15px; font-size: 13px;" onclick="openChangeGoalModal('<?php echo $goal_amount; ?>', '<?php echo $month; ?>', '<?php echo $year; ?>')">
                                     🔒 Change Goal
@@ -1158,7 +1156,7 @@
         </div>
     </div>
 
-    <!-- ================= CUSTOM MODAL: VIEW ALL ================= -->
+    <!-- VIEW ALL -->
     <div class="modal-overlay" id="viewAllModal">
         <div class="modal-content" style="max-width: 800px;">
             <div class="modal-header">
@@ -1190,7 +1188,7 @@
         </div>
     </div>
 
-    <!-- ================= CUSTOM MODAL: ADD TRANSACTION ================= -->
+    <!-- ADD TRANSACTION -->
     <div class="modal-overlay" id="addTransactionModal">
         <div class="modal-content">
             <div class="modal-header">
@@ -1231,7 +1229,7 @@
         </div>
     </div>
 
-    <!-- ================= CUSTOM MODAL: EDIT TRANSACTION ================= -->
+    <!-- EDIT TRANSACTION -->
     <div class="modal-overlay" id="editTransactionModal">
         <div class="modal-content">
             <div class="modal-header">
@@ -1273,7 +1271,7 @@
         </div>
     </div>
 
-    <!-- ================= CUSTOM MODAL: DELETE CONFIRMATION ================= -->
+    <!--  DELETE CONFIRMATION -->
     <div class="modal-overlay" id="deleteTransactionModal">
         <div class="modal-content" style="max-width: 450px; text-align: center;">
             <div class="modal-header" style="justify-content: center;">
@@ -1291,7 +1289,7 @@
         </div>
     </div>
 
-    <!-- ================= CUSTOM MODAL: CHANGE GOAL (PASSWORD REQUIRED) ================= -->
+    <!-- CHANGE GOAL -->
     <div class="modal-overlay" id="changeGoalModal">
         <div class="modal-content" style="max-width: 450px;">
             <div class="modal-header">
@@ -1328,7 +1326,6 @@
     <?php endif; ?>
 
     <script>
-        // PURE JS MODAL FUNCTIONS (BULLETPROOF)
         function openAddModal() {
             document.getElementById("addTransactionModal").classList.add("active");
         }

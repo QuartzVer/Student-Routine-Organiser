@@ -329,19 +329,24 @@ ob_start();
 
             </div>
 
+            <div class="mb-3">
+                <input type="text" id="userTableSearch" class="form-control"
+                       placeholder="Search ID, username, full name or email..." autocomplete="off">
+            </div>
+
             <div class="table-responsive">
 
-                <table class="table table-dark table-hover">
+                <table class="table table-dark table-hover" id="usersTable">
 
                     <thead>
 
                         <tr>
-                            <th>ID</th>
-                            <th>Username</th>
-                            <th>Full Name</th>
-                            <th>Email</th>
-                            <th>Role</th>
-                            <th>Registered</th>
+                            <th class="sortable" data-column="0" data-type="number">ID <span class="sort-indicator">↕</span></th>
+                            <th class="sortable" data-column="1" data-type="text">Username <span class="sort-indicator">↕</span></th>
+                            <th class="sortable" data-column="2" data-type="text">Full Name <span class="sort-indicator">↕</span></th>
+                            <th class="sortable" data-column="3" data-type="text">Email <span class="sort-indicator">↕</span></th>
+                            <th class="sortable" data-column="4" data-type="text">Role <span class="sort-indicator">↕</span></th>
+                            <th class="sortable" data-column="5" data-type="date">Registered <span class="sort-indicator">↕</span></th>
                             <th>Action</th>
                         </tr>
 
@@ -392,12 +397,10 @@ ob_start();
                                     <td>
 
                                         <?php
-
-                                        echo date(
-                                            'd M Y, h:i A',
-                                            strtotime($user['reg_date'])
-                                        );
-
+                                        $regTimestamp = strtotime($user['reg_date']);
+                                        echo '<span data-sort-value="' . $regTimestamp . '">' .
+                                             date('d M Y, h:i A', $regTimestamp) .
+                                             '</span>';
                                         ?>
 
                                     </td>
@@ -628,18 +631,23 @@ ob_start();
 
             </h4>
 
+            <div class="mb-3">
+                <input type="text" id="recentLoginSearch" class="form-control"
+                       placeholder="Search username, full name or role..." autocomplete="off">
+            </div>
+
             <div class="table-responsive">
 
-                <table class="table table-dark table-hover">
+                <table class="table table-dark table-hover" id="recentLoginsTable">
 
                     <thead>
 
                         <tr>
-                            <th>Username</th>
-                            <th>Full Name</th>
-                            <th>Email</th>
-                            <th>Role</th>
-                            <th>Last Login</th>
+                            <th class="sortable" data-column="0" data-type="text">Username <span class="sort-indicator">↕</span></th>
+                            <th class="sortable" data-column="1" data-type="text">Full Name <span class="sort-indicator">↕</span></th>
+                            <th class="sortable" data-column="2" data-type="text">Email <span class="sort-indicator">↕</span></th>
+                            <th class="sortable" data-column="3" data-type="text">Role <span class="sort-indicator">↕</span></th>
+                            <th class="sortable" data-column="4" data-type="date">Last Login <span class="sort-indicator">↕</span></th>
                         </tr>
 
                     </thead>
@@ -675,12 +683,10 @@ ob_start();
                                     <td>
 
                                         <?php
-
-                                        echo date(
-                                            'd M Y, h:i A',
-                                            strtotime($user['last_login'])
-                                        );
-
+                                        $loginTimestamp = strtotime($user['last_login']);
+                                        echo '<span data-sort-value="' . $loginTimestamp . '">' .
+                                             date('d M Y, h:i A', $loginTimestamp) .
+                                             '</span>';
                                         ?>
 
                                     </td>
@@ -716,8 +722,98 @@ ob_start();
 
 </div>
 
-<?php
+<style>
+.sortable{cursor:pointer;user-select:none;white-space:nowrap}
+.sortable:hover{color:#fff}
+.sort-indicator{margin-left:4px;font-size:15px;opacity:.55}
+.sortable.sort-asc .sort-indicator,.sortable.sort-desc .sort-indicator{opacity:1;color:#ffc107}
+#userTableSearch,#recentLoginSearch{background:#191d28;border:1px solid #343a46;color:#fff}
+#userTableSearch::placeholder,#recentLoginSearch::placeholder{color:#7d8594}
+#userTableSearch:focus,#recentLoginSearch:focus{background:#191d28;color:#fff;border-color:#17a2b8;box-shadow:0 0 0 .2rem rgba(23,162,184,.15)}
+</style>
 
+<script>
+document.addEventListener('DOMContentLoaded',function(){
+    function setupTable(tableId,searchId,searchColumns){
+        const table=document.getElementById(tableId);
+        const search=document.getElementById(searchId);
+        if(!table||!search)return;
+
+        const tbody=table.querySelector('tbody');
+        const headers=table.querySelectorAll('th.sortable');
+        let activeColumn=null;
+        let direction='asc';
+
+        function getRows(){
+            return Array.from(tbody.querySelectorAll('tr')).filter(function(row){
+                return row.querySelectorAll('td').length>1;
+            });
+        }
+
+        function getValue(row,column){
+            const cell=row.cells[column];
+            if(!cell)return '';
+            const sortValue=cell.querySelector('[data-sort-value]');
+            return sortValue ? sortValue.getAttribute('data-sort-value') : cell.textContent.trim();
+        }
+
+        search.addEventListener('input',function(){
+            const query=this.value.trim().toLowerCase();
+            getRows().forEach(function(row){
+                const matched=!query||searchColumns.some(function(column){
+                    return getValue(row,column).toLowerCase().includes(query);
+                });
+                row.style.display=matched?'':'none';
+            });
+        });
+
+        headers.forEach(function(header){
+            header.addEventListener('click',function(){
+                const column=Number(this.dataset.column);
+                const type=this.dataset.type||'text';
+
+                if(activeColumn===column){
+                    direction=direction==='asc'?'desc':'asc';
+                }else{
+                    activeColumn=column;
+                    direction='asc';
+                }
+
+                getRows().sort(function(a,b){
+                    const aValue=getValue(a,column);
+                    const bValue=getValue(b,column);
+                    let result;
+
+                    if(type==='number'||type==='date'){
+                        result=(Number(aValue)||0)-(Number(bValue)||0);
+                    }else{
+                        result=aValue.localeCompare(bValue,undefined,{numeric:true,sensitivity:'base'});
+                    }
+
+                    return direction==='asc'?result:-result;
+                }).forEach(function(row){
+                    tbody.appendChild(row);
+                });
+
+                headers.forEach(function(h){
+                    h.classList.remove('sort-asc','sort-desc');
+                    const indicator=h.querySelector('.sort-indicator');
+                    if(indicator)indicator.textContent='↕';
+                });
+
+                this.classList.add(direction==='asc'?'sort-asc':'sort-desc');
+                const indicator=this.querySelector('.sort-indicator');
+                if(indicator)indicator.textContent=direction==='asc'?'↑':'↓';
+            });
+        });
+    }
+
+    setupTable('usersTable','userTableSearch',[0,1,2,3]);
+    setupTable('recentLoginsTable','recentLoginSearch',[0,1,3]);
+});
+</script>
+
+<?php
 $pageContent = ob_get_clean();
 
 include "layout.php";

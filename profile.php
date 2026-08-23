@@ -6,7 +6,6 @@ $user_id = (int)$_SESSION['user_id'];
 $message = '';
 $msgType = '';
 
-// ── Get flash message after redirect ──
 if (isset($_SESSION['profile_message'])) {
     $message = $_SESSION['profile_message'];
     $msgType = $_SESSION['profile_msgType'];
@@ -15,7 +14,7 @@ if (isset($_SESSION['profile_message'])) {
     unset($_SESSION['profile_msgType']);
 }
 
-// ── Handle POST: Edit Profile ──
+// Handle POST: Edit Profile 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update_profile') {
 
     $pwd      = $_POST['profile_password'] ?? '';
@@ -84,13 +83,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         }
     }
 
-    // ── Redirect after POST to prevent form resubmission ──
+    // Redirect after POST to prevent form resubmission 
     header('Location: profile.php');
     exit();
 }
 
 
-// ── Handle POST: Change Password ──
+//  Handle POST: Change Password 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'change_password') {
 
     $oldPwd     = $_POST['old_password'] ?? '';
@@ -515,7 +514,7 @@ ob_start();
     </div>
 </div>
 
-<!-- Edit Profile — now requires password -->
+<!-- Edit Profile -->
 <div class="col-lg-6 col-12 mb-4">
     <div class="form-card">
         <div class="form-card-title">
